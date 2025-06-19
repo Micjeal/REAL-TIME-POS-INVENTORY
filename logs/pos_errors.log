@@ -1,0 +1,433 @@
+[17-Jun-2025 18:04:49 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 17:09:10 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:09:10","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:09:18 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:09:18 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'notes' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(137): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 17:13:40 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:13:40","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:13:42 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:13:42 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'payment_type' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(136): PDO->prepare('INSERT INTO doc...')
+#1 {main}
+[17-Jun-2025 17:14:45 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:14:45","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 17:15:36 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:15:36","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:15:38 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:15:38 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'notes' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(135): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 18:15:46 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:15:46 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'notes' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(135): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 17:19:47 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:19:47","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:19:51 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:19:51 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'notes' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(135): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 18:19:54 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:19:54 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'notes' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(135): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 18:20:04 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:20:04 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'notes' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(135): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 17:26:28 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:26:28","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:26:31 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:26:31 Africa/Kampala] Error processing sale: Invalid item data: missing required fields
+#0 {main}
+[17-Jun-2025 17:28:42 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:28:42","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:28:46 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:28:46 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'product_name' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(179): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 18:29:12 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:29:12 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'product_name' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(179): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 17:30:41 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:30:41","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:30:43 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 18:30:43 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'unit_price' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(179): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[17-Jun-2025 17:32:00 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:32:00","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:32:02 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 17:34:37 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:34:37","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:34:39 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[17-Jun-2025 17:40:16 Europe/Berlin] API Request: {"timestamp":"2025-06-17 17:40:16","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"18","stock":null}}
+[17-Jun-2025 18:40:19 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 18
+                    [quantity] => 1
+                    [unit_price] => 5500
+                    [tax_rate_id] => 1
+                    [tax_amount] => 990
+                    [discount_amount] => 0
+                    [subtotal] => 5500
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 6490
+    [tax_amount] => 990
+    [discount_amount] => 0
+    [notes] => 
+)
+

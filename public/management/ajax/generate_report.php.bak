@@ -1,0 +1,333 @@
+<?php
+require_once '../../config.php';
+
+// Check if user is logged in
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+    exit();
+}
+
+try {
+    $db = get_db_connection();
+    
+    $report_type = $_POST['report_type'] ?? '';
+    $start_date = $_POST['start_date'] ?? date('Y-m-d');
+    $end_date = $_POST['end_date'] ?? date('Y-m-d');
+    $format = $_POST['format'] ?? 'html';
+    
+    $filters = [
+        'start_date' => $start_date . ' 00:00:00',
+        'end_date' => $end_date . ' 23:59:59',
+        'customer_id' => $_POST['customer_id'] ?? null,
+        'user_id' => $_POST['user_id'] ?? null,
+        'product_id' => $_POST['product_id'] ?? null,
+        'category_id' => $_POST['category_id'] ?? null,
+        'include_subgroups' => isset($_POST['include_subgroups']) ? true : false,
+    ];
+    
+    // Get report data
+    // Log report generation for audit
+    $user_id = $_SESSION['user_id'] ?? 0;
+    
+    try {
+        $log_stmt = $db->prepare("INSERT INTO activity_log (user_id, action, details, timestamp) VALUES (?, ?, ?, NOW())");
+        $log_stmt->execute([$user_id, 'generate_report', 'Report type: ' . $report_type . ', Format: ' . $format]);
+    } catch (Exception $e) {
+        // Silent fail - don't stop report generation if logging fails
+    }
+    
+    $query = "";
+    $params = [];
+      switch($report_type) {
+        case 'products':
+            $query = "SELECT 
+                     p.name as product_name,
+                     pc.name as category,
+                     COUNT(DISTINCT s.id) as total_sales,
+                     COALESCE(SUM(si.quantity), 0) as units_sold,
+                     COALESCE(SUM(si.total_amount), 0) as total_amount
+                     FROM products p
+                     LEFT JOIN product_categories pc ON p.category_id = pc.id
+                     LEFT JOIN sale_items si ON p.id = si.product_id
+                     LEFT JOIN sales s ON si.sale_id = s.id AND s.date BETWEEN ? AND ?
+                     WHERE 1=1
+                     " . ($filters['category_id'] ? "AND p.category_id = ?" : "") . "
+                     " . ($filters['product_id'] ? "AND p.id = ?" : "") . "
+                     GROUP BY p.id, p.name, pc.name
+                     ORDER BY total_amount DESC";
+            $params = [$filters['start_date'], $filters['end_date']];
+            if ($filters['category_id']) $params[] = $filters['category_id'];
+            if ($filters['product_id']) $params[] = $filters['product_id'];
+            break;
+            
+        case 'daily_sales':
+            $query = "SELECT 
+                     DATE(s.date) as sale_date,
+                     COUNT(DISTINCT s.id) as transactions,
+                     COUNT(DISTINCT s.customer_id) as unique_customers,
+                     SUM(s.total_amount) as total_sales,
+                     SUM(s.tax_amount) as total_tax,
+                     SUM(s.discount_amount) as total_discounts
+                     FROM sales s
+                     WHERE s.date BETWEEN ? AND ?
+                     " . ($filters['user_id'] ? "AND s.user_id = ?" : "") . "
+                     GROUP BY DATE(s.date)
+                     ORDER BY sale_date DESC";
+            $params = [$filters['start_date'], $filters['end_date']];
+            if ($filters['user_id']) $params[] = $filters['user_id'];
+            break;
+            
+        case 'customers':
+            $query = "SELECT 
+                     c.name as customer_name,
+                     COUNT(s.id) as total_purchases,
+                     SUM(s.total_amount) as total_spent,
+                     AVG(s.total_amount) as average_purchase,
+                     MAX(s.date) as last_purchase
+                     FROM contacts c
+                     LEFT JOIN sales s ON c.id = s.customer_id AND s.date BETWEEN ? AND ?
+                     WHERE c.is_customer = 1
+                     " . ($filters['customer_id'] ? "AND c.id = ?" : "") . "
+                     GROUP BY c.id, c.name
+                     ORDER BY total_spent DESC";
+            $params = [$filters['start_date'], $filters['end_date']];
+            if ($filters['customer_id']) $params[] = $filters['customer_id'];
+            break;
+            
+        case 'tax_rates':
+            $query = "SELECT 
+                     DISTINCT tax_rate,
+                     COUNT(si.id) as items_sold,
+                     SUM(si.total_amount) as total_sales,
+                     SUM(si.total_amount * (tax_rate/100)) as tax_collected
+                     FROM sale_items si
+                     JOIN sales s ON si.sale_id = s.id
+                     WHERE s.date BETWEEN ? AND ?
+                     GROUP BY tax_rate
+                     ORDER BY tax_collected DESC";
+            $params = [$filters['start_date'], $filters['end_date']];
+            break;
+              case 'users':
+            $query = "SELECT 
+                     u.username,
+                     COALESCE(u.full_name, u.username) as full_name,
+                     COUNT(s.id) as total_sales,
+                     COALESCE(SUM(s.total_amount), 0) as total_amount,
+                     COALESCE(AVG(s.total_amount), 0) as average_sale
+                     FROM users u
+                     LEFT JOIN sales s ON u.id = s.user_id AND s.date BETWEEN ? AND ?
+                     GROUP BY u.id, u.username, u.full_name
+                     ORDER BY total_amount DESC";
+            $params = [$filters['start_date'], $filters['end_date']];
+            break;
+            
+        case 'payment_types':
+            $query = "SELECT 
+                     payment_type,
+                     COUNT(*) as total_transactions,
+                     SUM(total_amount) as total_amount,
+                     AVG(total_amount) as average_amount
+                     FROM sales
+                     WHERE date BETWEEN ? AND ?
+                     GROUP BY payment_type
+                     ORDER BY total_amount DESC";
+            $params = [$filters['start_date'], $filters['end_date']];
+            break;
+            
+        case 'refunds':
+            $query = "SELECT 
+                     r.id as refund_id,
+                     s.invoice_number,
+                     r.amount as refund_amount,
+                     r.reason,
+                     r.date as refund_date,
+                     u.username as processed_by
+                     FROM refunds r
+                     JOIN sales s ON r.sale_id = s.id
+                     JOIN users u ON r.processed_by = u.id
+                     WHERE r.date BETWEEN ? AND ?
+                     ORDER BY r.date DESC";
+            $params = [$filters['start_date'], $filters['end_date']];
+            break;
+            
+        case 'hourly_sales':
+            $query = "SELECT 
+                     HOUR(s.date) as hour,
+                     COUNT(*) as total_transactions,
+                     SUM(s.total_amount) as total_amount,
+                     AVG(s.total_amount) as average_amount
+                     FROM sales s
+                     WHERE s.date BETWEEN ? AND ?
+                     GROUP BY HOUR(s.date)
+                     ORDER BY hour";
+            $params = [$filters['start_date'], $filters['end_date']];
+            break;
+            
+        case 'stock_movement':
+            $query = "SELECT 
+                     p.name as product_name,
+                     sm.type,
+                     sm.quantity,
+                     sm.reference_type,
+                     sm.date,
+                     u.username as created_by,
+                     sm.notes
+                     FROM stock_movements sm
+                     JOIN products p ON sm.product_id = p.id
+                     JOIN users u ON sm.created_by = u.id
+                     WHERE sm.date BETWEEN ? AND ?
+                     " . ($filters['product_id'] ? "AND sm.product_id = ?" : "") . "
+                     ORDER BY sm.date DESC";
+            $params = [$filters['start_date'], $filters['end_date']];
+            if ($filters['product_id']) $params[] = $filters['product_id'];
+            break;
+    }
+    
+    if (empty($query)) {
+        throw new Exception('Invalid report type');
+    }
+    
+    $stmt = $db->prepare($query);
+    $stmt->execute($params);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Format numbers and dates in the result
+    foreach ($data as &$row) {
+        foreach ($row as $key => $value) {
+            if (strpos($key, 'amount') !== false || strpos($key, 'total') !== false || strpos($key, 'price') !== false) {
+                $row[$key] = number_format($value, 2);
+            }
+            if (strpos($key, 'date') !== false && $value) {
+                $row[$key] = date('Y-m-d H:i', strtotime($value));
+            }
+        }
+    }
+    
+    // Handle different output formats
+    switch($format) {
+        case 'pdf':
+            // Check if TCPDF exists
+            $tcpdf_path = '../lib/tcpdf/tcpdf.php';
+            if (!file_exists($tcpdf_path)) {
+                throw new Exception('TCPDF library not found. Please ensure it is installed correctly.');
+            }
+            require_once $tcpdf_path;
+            
+            try {
+                // Create PDF instance
+                $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+                
+                // Set document information
+                $pdf->SetCreator(PDF_CREATOR);
+                $pdf->SetAuthor('MTECH UGANDA');
+                $pdf->SetTitle("Report - " . ucfirst($report_type));
+                
+                // Remove default header/footer
+                $pdf->setPrintHeader(false);
+                $pdf->setPrintFooter(false);
+                
+                // Set default monospaced font
+                $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+                
+                // Set margins
+                $pdf->SetMargins(15, 15, 15);
+                
+                // Set auto page breaks
+                $pdf->SetAutoPageBreak(TRUE, 15);
+                
+                // Set font
+                $pdf->SetFont('helvetica', '', 10);
+                
+            
+            // Remove default header/footer
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+                }
+                $html .= "</tr></thead><tbody>";
+                
+                // Add data rows
+                $row_count = 0;
+                foreach ($data as $row) {
+                    $row_style = $row_count % 2 == 0 ? 'background-color:#f9f9f9;' : '';
+                    $html .= "<tr style='$row_style'>";
+                    foreach ($row as $value) {
+                        $html .= "<td>$value</td>";
+                    }
+                    $html .= "</tr>";
+                    $row_count++;
+                }
+                $html .= "</tbody>";
+            } else {
+                $html .= "<tr><td colspan='10' style='text-align:center;'>No data available for the selected criteria</td></tr>";
+            }
+            $html .= "</table>";
+            
+            // Add footer info
+            $html .= "<p style='text-align:center; font-size:9pt; margin-top:15px;'>Copyright © " . date('Y') . " MTECH UGANDA. All rights reserved.</p>";
+            
+            // Write the HTML content to PDF
+            $pdf->writeHTML($html, true, false, true, false, '');
+            
+            // Set some additional metadata
+            $pdf->SetCreator('MTECH UGANDA Report System');
+            $pdf->SetKeywords('report, ' . $report_type . ', MTECH UGANDA');
+            
+            // Add page numbering to footer
+            $pdf->setFooterFont(Array('helvetica', '', 8));
+            $pdf->setFooterMargin(10);
+            $pdf->setFooterData(array(0,0,0), array(0,0,0));
+            
+            // Close and output PDF document with a descriptive filename
+            $clean_report_type = str_replace('_', '-', $report_type);
+            $filename = 'MTECH_UGANDA_' . $clean_report_type . '_report_' . date('Y-m-d') . '.pdf';
+            $pdf->Output($filename, 'D');
+            exit();
+            
+            } catch (Exception $e) {
+                throw new Exception('PDF Generation failed: ' . $e->getMessage());
+            }
+            
+        case 'excel':
+            header('Content-Type: application/vnd.ms-excel');
+            header('Content-Disposition: attachment;filename="report_' . $report_type . '.xls"');
+            
+            echo "<table border='1'>";
+            // Add headers
+            if (!empty($data)) {
+                echo "<tr>";
+                foreach (array_keys($data[0]) as $header) {
+                    echo "<th>" . ucwords(str_replace('_', ' ', $header)) . "</th>";
+                }
+                echo "</tr>";
+                
+                // Add data rows
+                foreach ($data as $row) {
+                    echo "<tr>";
+                    foreach ($row as $value) {
+                        echo "<td>$value</td>";
+                    }
+                    echo "</tr>";
+                }
+            }
+            echo "</table>";
+            exit();
+            
+        default: // html
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'data' => $data,
+                'report_type' => $report_type,
+                'start_date' => $start_date,
+                'end_date' => $end_date
+            ]);
+            exit();
+    }
+    
+} catch (Exception $e) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    exit();
+}

@@ -1,0 +1,207 @@
+[12-Jun-2025 12:13:05 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:13:05 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:05 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:05 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:13:05 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:13:05 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:13:05 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:13:06 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:13:06 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:06 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:06 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:13:06 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:13:06 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:13:06 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:13:06 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:13:06 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:06 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:06 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:13:06 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:13:06 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:13:06 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:13:06 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:13:06 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:06 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:06 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:13:06 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:13:06 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:13:06 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:13:07 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:13:07 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:07 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:07 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:13:07 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:13:07 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:13:07 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:13:14 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:13:14 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:14 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:13:14 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:13:14 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:13:14 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:13:14 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:14:05 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:14:05 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:05 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:05 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:14:05 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:14:05 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:14:05 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:14:06 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:14:06 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:06 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:06 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:14:06 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:14:06 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:14:06 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:14:06 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:14:06 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:06 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:06 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:14:06 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:14:06 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:14:06 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:14:07 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:14:07 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:07 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:07 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:14:07 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:14:07 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:14:07 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:14:20 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:14:20 Europe/Berlin] Looking for config file at: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:20 Europe/Berlin] Including config file: C:\xampp\htdocs\MTECH UGANDA\public\management/../config.php
+[12-Jun-2025 12:14:20 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:14:20 Africa/Kampala] Config file included successfully
+[12-Jun-2025 13:14:20 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 13:14:20 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:150
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 150
+[12-Jun-2025 12:15:36 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:15:36 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:15:36 Africa/Kampala] PHP Warning:  Undefined variable $configPath in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 19
+[12-Jun-2025 13:15:36 Africa/Kampala] Looking for config file at: 
+[12-Jun-2025 13:15:36 Africa/Kampala] PHP Warning:  Undefined variable $configPath in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 21
+[12-Jun-2025 13:15:36 Africa/Kampala] PHP Deprecated:  file_exists(): Passing null to parameter #1 ($filename) of type string is deprecated in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 21
+[12-Jun-2025 13:15:36 Africa/Kampala] PHP Warning:  Undefined variable $configPath in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 22
+[12-Jun-2025 13:15:36 Africa/Kampala] Error in company.php: Configuration file not found at: 
+[12-Jun-2025 13:15:36 Africa/Kampala] Stack trace: #0 {main}
+[12-Jun-2025 12:16:11 Europe/Berlin] Starting company.php
+[12-Jun-2025 12:16:11 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\public\config.php on line 28
+[12-Jun-2025 13:16:11 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 135
+[12-Jun-2025 13:16:11 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php:135
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\company.php on line 135
+[17-Jun-2025 18:09:10 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:09:10 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:13:40 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:13:40 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:14:45 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:14:45 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:15:36 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:15:36 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:19:47 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:19:47 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:26:28 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:26:28 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:28:42 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:28:42 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:30:41 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:30:41 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:32:00 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:32:00 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:34:37 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:34:37 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:40:16 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 18:40:16 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[17-Jun-2025 17:51:56 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 17:52:01 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 17:54:19 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 18:54:19 Africa/Kampala] PHP Warning:  require_once(includes/header.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php on line 15
+[17-Jun-2025 18:54:19 Africa/Kampala] PHP Fatal error:  Uncaught Error: Failed opening required 'includes/header.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php:15
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php on line 15
+[17-Jun-2025 17:54:24 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 18:54:24 Africa/Kampala] PHP Warning:  require_once(includes/header.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php on line 15
+[17-Jun-2025 18:54:24 Africa/Kampala] PHP Fatal error:  Uncaught Error: Failed opening required 'includes/header.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php:15
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php on line 15
+[17-Jun-2025 17:54:25 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 18:54:25 Africa/Kampala] PHP Warning:  require_once(includes/header.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php on line 15
+[17-Jun-2025 18:54:25 Africa/Kampala] PHP Fatal error:  Uncaught Error: Failed opening required 'includes/header.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php:15
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\customers.php on line 15
+[17-Jun-2025 17:58:57 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 17:59:05 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 18:01:36 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 18:03:39 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 18:04:12 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[17-Jun-2025 18:05:29 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30

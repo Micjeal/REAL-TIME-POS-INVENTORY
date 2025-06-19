@@ -1,0 +1,11 @@
+# Set startup.php as the default document
+DirectoryIndex startup.php index.php
+
+# Enable URL rewriting
+RewriteEngine On
+
+# Redirect the root of public to startup.php
+RewriteRule ^$ startup.php [L]
+
+# Ensure Apache can follow symbolic links
+Options +FollowSymLinks

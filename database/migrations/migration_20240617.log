@@ -1,0 +1,76 @@
+Migration Results
+================
+Successfully executed: 0 queries
+Failed: 6 queries
+
+Errors:
+-------
+Query: -- Create customer_audit table to track changes to customers
+CREATE TABLE IF NOT EXISTS customer_audit (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    action ENUM('INSERT', ...
+Error: SQLSTATE[HY000]: General error: 1005 Can't create table `mtech_uganda`.`customer_audit` (errno: 150 "Foreign key constraint is incorrectly formed")
+
+Query: -- Create trigger for INSERT
+DELIMITER //
+CREATE TRIGGER after_customer_insert
+AFTER INSERT ON customers
+FOR EACH ROW
+BEGIN
+    INSERT INTO customer_audit (
+        customer_id, 
+        action, 
+    ...
+Error: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'DELIMITER //
+CREATE TRIGGER after_customer_insert
+AFTER INSERT ON customers
+F...' at line 2
+
+Query: END //
+
+
+-- Create trigger for UPDATE
+CREATE TRIGGER after_customer_update
+AFTER UPDATE ON customers
+FOR EACH ROW
+BEGIN
+    IF OLD.name != NEW.name OR 
+       OLD.email != NEW.email OR 
+       OLD.pho...
+Error: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'END //
+
+
+-- Create trigger for UPDATE
+CREATE TRIGGER after_customer_update
+AF...' at line 1
+
+Query: END IF...
+Error: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'END IF' at line 1
+
+Query: END //
+
+
+-- Create trigger for DELETE
+CREATE TRIGGER before_customer_delete
+BEFORE DELETE ON customers
+FOR EACH ROW
+BEGIN
+    INSERT INTO customer_audit (
+        customer_id, 
+        action, 
+      ...
+Error: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'END //
+
+
+-- Create trigger for DELETE
+CREATE TRIGGER before_customer_delete
+B...' at line 1
+
+Query: END //
+
+DELIMITER...
+Error: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'END //
+
+DELIMITER' at line 1
+
