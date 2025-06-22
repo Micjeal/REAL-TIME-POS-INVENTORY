@@ -1508,43 +1508,58 @@ try {
             $('#currentDateTime').text(dateTimeStr);
         }
         
-        // Search products
+        // Search products in database
         function searchProducts(query) {
-            const results = products.filter(product => 
-                product.name.toLowerCase().includes(query) || 
-                product.code.toLowerCase().includes(query)
-            );
-            
-            let resultsHtml = '';
-            
-            if (results.length > 0) {
-                results.forEach(product => {
-                    resultsHtml += `
-                        <div class="search-result-item" data-id="${product.id}">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <div>${product.name}</div>
-                                    <div class="product-code">${product.code} (${product.category_name})</div>
-                                </div>
-                                <div class="product-price">${formatCurrency(product.price)}</div>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                resultsHtml = '<div class="search-result-item">No products found</div>';
+            if (query.length < 2) {
+                $('#searchResults').hide();
+                return;
             }
             
-            $('#searchResults').html(resultsHtml).show();
+            // Show loading state
+            $('#searchResults').html('<div class="search-result-item">Searching...</div>').show();
             
-            // Add product to cart when clicking on search result
-            $('.search-result-item').on('click', function() {
-                const productId = $(this).data('id');
-                const product = products.find(p => p.id == productId);
-                if (product) {
-                    addToCart(product);
-                    $('#searchBox').val('');
-                    $('#searchResults').hide();
+            // Make AJAX request to search endpoint
+            $.ajax({
+                url: 'ajax/search_products.php',
+                type: 'GET',
+                data: { q: query },
+                dataType: 'json',
+                success: function(response) {
+                    let resultsHtml = '';
+                    
+                    if (response.success && response.results && response.results.length > 0) {
+                        response.results.forEach(product => {
+                            resultsHtml += `
+                                <div class="search-result-item" data-id="${product.id}">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <div>${product.name}</div>
+                                            <div class="product-code">${product.code} (${product.category_name || 'No Category'})</div>
+                                        </div>
+                                        <div class="product-price">${formatCurrency(product.price)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        resultsHtml = '<div class="search-result-item">No products found</div>';
+                    }
+                    
+                    $('#searchResults').html(resultsHtml);
+                    
+                    // Add product to cart when clicking on search result
+                    $('.search-result-item').on('click', function() {
+                        const productId = $(this).data('id');
+                        const product = (response.results || []).find(p => p.id == productId);
+                        if (product) {
+                            addToCart(product);
+                            $('#searchBox').val('');
+                            $('#searchResults').hide();
+                        }
+                    });
+                },
+                error: function() {
+                    $('#searchResults').html('<div class="search-result-item">Error searching products</div>');
                 }
             });
         }
