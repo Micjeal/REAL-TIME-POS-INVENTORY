@@ -269,6 +269,18 @@ try {
         .cart-item {
             display: grid;
             grid-template-columns: 2fr 1.5fr 1fr 1fr;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            
+        .cart-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+            
+        .cart-item.selected {
+            background-color: rgba(40, 167, 69, 0.2);
+            outline: 1px solid #28a745;
+            border-radius: 4px;
+        }
             align-items: center;
             padding: 10px;
             border-bottom: 1px solid var(--light-bg);
@@ -639,6 +651,33 @@ try {
         .action-buttons {
             grid-template-rows: repeat(11, 1fr);
         }
+        
+        .modal-content {
+            background-color: var(--dark-bg);
+            color: #fff;
+            border: 1px solid var(--light-bg);
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid var(--light-bg);
+        }
+        
+        .modal-footer {
+            border-top: 1px solid var(--light-bg);
+        }
+        
+        .form-control {
+            background-color: var(--med-bg);
+            border: 1px solid var(--light-bg);
+            color: #fff;
+        }
+        
+        .form-control:focus {
+            background-color: var(--med-bg);
+            color: #fff;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
 
         /* Responsive design for different screen sizes */
         @media (max-width: 1366px) {
@@ -853,7 +892,7 @@ try {
         
         <div class="sidebar-section">
             <div class="sidebar-menu">
-                <a href="feedback.php" class="sidebar-menu-item">
+                <a href="/MTECH%20UGANDA/public/feedback.php" class="sidebar-menu-item">
                     <i class="fas fa-comment"></i>
                     <span>Feedback</span>
                 </a>
@@ -880,7 +919,7 @@ try {
         <div class="logout-content">
             <h3>Confirm Logout</h3>
             <p>Are you sure you want to log out?</p>
-            <p>You will be automatically logged out in:</p>
+            <p>You will be automatically be logged out in:</p>
             <div class="logout-timer" id="logoutTimer">5</div>
             <div class="logout-buttons">
                 <button class="btn btn-secondary" id="stayLoggedInBtn">Stay Logged In</button>
@@ -971,10 +1010,32 @@ try {
                     <span>Delete</span>
                 </button>
 
-                <button class="action-button" title="New sale">
-                    <i class="fas fa-plus-circle"></i>
-                    <span>New sale</span>
+                <button class="action-button" id="quantityBtn" title="Set Quantity">
+                    <i class="fas fa-calculator"></i>
+                    <span>Set Qty</span>
                 </button>
+                
+                <!-- Quantity Input Modal -->
+                <div class="modal fade" id="quantityModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Set Quantity</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="quantityInput" class="form-label">Enter Quantity:</label>
+                                    <input type="number" class="form-control" id="quantityInput" min="1" value="1" autofocus>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="confirmQuantity">Update</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <button class="action-button" title="Cash" id="cashMethodBtn">
                     <i class="fas fa-money-bill-wave"></i>
                     <span>Cash</span>
@@ -1057,6 +1118,8 @@ try {
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Email Notifications -->
+    <script src="/MTECH%20UGANDA/public/js/email-notifications.js"></script>
     
     <script>
         // Global variables
@@ -1392,10 +1455,82 @@ try {
             saveSale(selectedPaymentMethod);
         });
         
+        // Handle cart item selection
+        function selectCartItem(itemElement) {
+            // Remove selected class from all items
+            $('.cart-item').removeClass('selected');
+            // Add selected class to clicked item
+            $(itemElement).addClass('selected');
+        }
+
         $(document).ready(function() {
             // Update date and time
             updateDateTime();
             setInterval(updateDateTime, 1000);
+            
+            // Handle cart item click
+            $(document).on('click', '.cart-item', function() {
+                selectCartItem(this);
+            });
+            
+            // Handle quantity button click
+            $('#quantityBtn').on('click', function() {
+                const selectedItem = $('.cart-item.selected');
+                if (selectedItem.length) {
+                    const currentQty = parseInt(selectedItem.find('.cart-item-quantity').text());
+                    $('#quantityInput').val(currentQty).select();
+                    const quantityModal = new bootstrap.Modal(document.getElementById('quantityModal'));
+                    quantityModal.show();
+                } else if ($('.cart-item').length > 0) {
+                    // If no item is selected but cart is not empty, select the first one
+                    const firstItem = $('.cart-item').first();
+                    selectCartItem(firstItem);
+                    const currentQty = parseInt(firstItem.find('.cart-item-quantity').text());
+                    $('#quantityInput').val(currentQty).select();
+                    const quantityModal = new bootstrap.Modal(document.getElementById('quantityModal'));
+                    quantityModal.show();
+                } else {
+                    alert('Please add items to cart first');
+                }
+            });
+            
+            // Handle confirm quantity button
+            $('#confirmQuantity').on('click', function() {
+                const selectedItem = $('.cart-item.selected');
+                if (!selectedItem.length) {
+                    const modalElement = document.getElementById('quantityModal');
+                    if (modalElement) {
+                        const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                        modal.hide();
+                    }
+                    return;
+                }
+                
+                const productCode = selectedItem.data('code');
+                const currentQty = parseInt(selectedItem.find('.cart-item-quantity').text());
+                const newQty = parseInt($('#quantityInput').val());
+                
+                if (isNaN(newQty) || newQty < 1) {
+                    alert('Please enter a valid quantity');
+                    return;
+                }
+                
+                // Calculate the difference to update the quantity correctly
+                const quantityDifference = newQty - currentQty;
+                
+                if (quantityDifference !== 0) {
+                    updateQuantity(productCode, quantityDifference, event);
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('quantityModal')).hide();
+            });
+            
+            // Allow pressing Enter in the quantity input to confirm
+            $('#quantityInput').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    $('#confirmQuantity').click();
+                }
+            });
             
             // Search functionality
             $('#searchBox').on('keyup', function() {
@@ -1613,43 +1748,47 @@ try {
         }
 
         // Function to update stock in database
-        function updateStock(productId, newStock) {
+        async function updateStock(productId, newStock) {
             // Get the base URL
             const baseUrl = window.location.origin + window.location.pathname;
             const apiUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/')) + '/api/update_stock.php';
             
-            $.ajax({
-                url: apiUrl,
-                type: 'POST',
-                dataType: 'json',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    product_id: productId,
-                    stock: newStock
-                }),
-                success: function(response) {
-                    if (response && response.success) {
-                        // Update the product stock in our products array
-                        const productIndex = products.findIndex(p => p.id == productId);
-                        if (productIndex >= 0) {
-                            products[productIndex].stock = newStock;
-                        }
-                    } else {
-                        const errorMsg = response && response.message ? response.message : 'Unknown error';
-                        console.error('Failed to update stock:', errorMsg);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    let errorMsg = 'Network error';
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        errorMsg = response.message || errorMsg;
-                    } catch (e) {
-                        errorMsg = xhr.statusText || errorMsg;
-                    }
-                    console.error('Stock update error:', errorMsg);
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `product_id=${encodeURIComponent(productId)}&stock=${encodeURIComponent(newStock)}`
+                });
+
+                // First check if response is valid JSON
+                const responseText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse JSON response:', responseText);
+                    throw new Error('Invalid response from server. Please check server logs.');
                 }
-            });
+                
+                if (!response.ok || !data.success) {
+                    const errorMsg = data.message || `HTTP error! status: ${response.status}`;
+                    console.error('Stock update failed:', errorMsg);
+                    throw new Error(errorMsg);
+                }
+                
+                // Update the product stock in our products array
+                const productIndex = products.findIndex(p => p.id == productId);
+                if (productIndex >= 0) {
+                    products[productIndex].stock = newStock;
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Error in updateStock:', error);
+                throw error; // Re-throw to allow calling code to handle the error
+            }
         }
         
         // Remove item from cart
@@ -1747,8 +1886,25 @@ try {
                     cart.splice(itemIndex, 1);
                 }
                 
-                // Update cart display
+                // Update cart display and totals
                 updateCartDisplay();
+                
+                // Update the selected item's quantity display immediately
+                const selectedItem = $(`.cart-item[data-index="${itemIndex}"]`);
+                if (selectedItem.length) {
+                    selectedItem.find('.quantity-display').text(newQuantity);
+                    
+                    // Update the item total amount
+                    const price = parseFloat(cart[itemIndex].price);
+                    const total = price * newQuantity;
+                    selectedItem.find('.cart-item-amount').text(formatCurrency(total));
+                    
+                    // Update the main totals
+                    const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * parseFloat(item.quantity)), 0);
+                    const taxRate = 0.18; // Assuming 18% tax rate
+                    const taxTotal = subtotal * taxRate;
+                    updateTotals(subtotal, taxTotal, subtotal + taxTotal);
+                }
             }
         }
         
@@ -1797,9 +1953,17 @@ try {
             $('#loadingOverlay').show();
             $('#statusMessage').text('Logging out...');
             
+            // Get username from the page or session
+            const username = $('.user-info .username').text() || 'User';
+            
+            // Send logout notification
+            if (typeof EmailNotifications !== 'undefined') {
+                EmailNotifications.trackLogout(username);
+            }
+            
             // Redirect to logout page after a short delay
             setTimeout(function() {
-                window.location.href = 'logout.php';
+                window.location.href = 'logout.php?username=' + encodeURIComponent(username);
             }, 1000);
         }
         

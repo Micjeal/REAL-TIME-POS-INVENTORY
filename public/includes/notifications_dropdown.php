@@ -57,7 +57,7 @@ $unreadCount = $notificationHelper->getUnreadCount($_SESSION['user_id']);
                 </a>
             <?php endforeach; ?>
             <a class="dropdown-item text-center small text-gray-500" href="management/notifications.php">
-                View All Notifications
+                <i class="fas fa-list mr-1"></i> View All Notifications
             </a>
         <?php endif; ?>
     </div>
@@ -132,52 +132,61 @@ $(document).ready(function() {
     $('.notification-item').on('click', function(e) {
         e.preventDefault();
         
-        const notificationId = $(this).data('id');
-        const targetUrl = $(this).data('url');
+        var $notificationItem = $(this);
+        var notificationId = $notificationItem.data('id');
+        var targetUrl = $notificationItem.data('url');
         
-        // Mark as read via AJAX
+        // Mark as read via AJAX if we have a notification ID
         if (notificationId) {
             $.ajax({
-                url: 'ajax/mark_notification_read.php',
+                url: 'mark_notification_read.php',
                 type: 'POST',
-                data: { id: notificationId },
+                data: { notification_id: notificationId },
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        // Update notification count
-                        const $badge = $('#notificationsDropdown .badge-counter');
-                        const count = parseInt($badge.text()) - 1;
-                        
-                        if (count > 0) {
-                            $badge.text(count);
+                        // Update the notification count
+                        var $badge = $('.badge-counter');
+                        var count = parseInt($badge.text());
+                        if (count > 1) {
+                            $badge.text(count - 1);
                         } else {
                             $badge.remove();
                         }
-                        
-                        // Remove the notification item
-                        $(`a[data-id="${notificationId}"]`).remove();
-                        
-                        // If no more notifications, show message
-                        if ($('.notification-item').length === 0) {
-                            $('#notificationsDropdown .dropdown-list').html(`
-                                <h6 class="dropdown-header bg-primary text-white">
-                                    Notifications Center
-                                </h6>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">
-                                    No new notifications
-                                </a>
-                            `);
-                        }
+                        // Remove the notification from the list
+                        $notificationItem.fadeOut(200, function() {
+                            $(this).remove();
+                            // If no more notifications, show message
+                            if ($('.notification-item').length === 0) {
+                                $('.dropdown-list').html(`
+                                    <h6 class="dropdown-header bg-primary text-white">
+                                        Notifications Center
+                                    </h6>
+                                    <a class="dropdown-item text-center small text-gray-500" href="#">
+                                        No new notifications
+                                    </a>
+                                    <a class="dropdown-item text-center small text-gray-500" href="management/notifications.php">
+                                        <i class="fas fa-list mr-1"></i> View All Notifications
+                                    </a>
+                                `);
+                            }
+                        });
                     }
                 },
-                error: function() {
-                    console.error('Error marking notification as read');
+                error: function(xhr, status, error) {
+                    console.error('Error marking notification as read:', error);
+                },
+                complete: function() {
+                    // Navigate to the target URL after marking as read
+                    if (targetUrl) {
+                        window.location.href = targetUrl;
+                    }
                 }
             });
+        } else if (targetUrl) {
+            // If no notification ID but we have a URL, just navigate
+            window.location.href = targetUrl;
         }
-        
-        // Navigate to the target URL
-        window.location.href = targetUrl;
     });
 });
 </script>

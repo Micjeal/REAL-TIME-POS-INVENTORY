@@ -90,14 +90,39 @@ class NotificationHelper {
             
             $stmt = $this->db->prepare("
                 UPDATE notifications 
-                SET is_read = 1 
+                SET is_read = 1, read_at = NOW() 
                 WHERE id IN ($placeholders) 
                 AND (user_id = ? OR user_id IS NULL)
-            
             ");
             return $stmt->execute($params);
         } catch (PDOException $e) {
             error_log('Error marking notifications as read: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Mark notifications as read by their reference type and ID
+     * 
+     * @param string $referenceType Type of reference (e.g., 'feedback')
+     * @param int $referenceId ID of the referenced item
+     * @return bool True on success, false on failure
+     */
+    public function markAsReadByReference($referenceType, $referenceId) {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE notifications 
+                SET is_read = 1, read_at = NOW() 
+                WHERE related_url LIKE ? 
+                AND is_read = 0
+            ");
+            
+            // Create a pattern to match the reference in the URL
+            $urlPattern = "%" . $referenceType . ".php?id=" . (int)$referenceId . "%";
+            
+            return $stmt->execute([$urlPattern]);
+        } catch (PDOException $e) {
+            error_log('Error marking notifications as read by reference: ' . $e->getMessage());
             return false;
         }
     }

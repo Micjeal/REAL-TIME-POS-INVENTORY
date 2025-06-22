@@ -165,7 +165,6 @@ try {
         $itemData = [
             'sale_id' => $saleId,
             'product_id' => $item['product_id'],
-            'product_name' => $productName,
             'quantity' => $item['quantity'],
             'unit_price' => $item['unit_price'],
             'tax_amount' => $item['tax_amount'] ?? 0,

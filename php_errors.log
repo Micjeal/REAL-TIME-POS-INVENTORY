@@ -205,3 +205,140 @@ Stack trace:
 [17-Jun-2025 18:03:39 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
 [17-Jun-2025 18:04:12 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
 [17-Jun-2025 18:05:29 Europe/Berlin] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in C:\xampp\htdocs\MTECH UGANDA\config.php on line 30
+[19-Jun-2025 15:51:52 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 15:51:52 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 15:54:15 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 15:54:15 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:02:32 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:02:32 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:06:42 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:06:42 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:08:19 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:08:19 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:11:10 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:11:10 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:14:44 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:14:44 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:16:07 Africa/Kampala] Sending JSON response: {"success":false,"message":"Invalid product ID","data":[]}
+[19-Jun-2025 16:16:42 Africa/Kampala] Sending JSON response: {"success":false,"message":"Invalid product ID","data":[]}
+[19-Jun-2025 16:19:43 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:19:43 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:25:23 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[19-Jun-2025 16:25:23 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[20-Jun-2025 13:49:54 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[20-Jun-2025 13:49:54 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[20-Jun-2025 20:33:33 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[20-Jun-2025 20:33:33 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[20-Jun-2025 22:53:59 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[20-Jun-2025 22:53:59 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php:70
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\api\update_stock.php on line 70
+[22-Jun-2025 17:31:48 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 17:31:48 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 19:36:22 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 19:36:22 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 19:59:26 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 19:59:26 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 20:48:51 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 13
+[22-Jun-2025 20:48:51 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php:13
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 13
+[22-Jun-2025 20:54:52 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 13
+[22-Jun-2025 20:54:52 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php:13
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 13
+[22-Jun-2025 20:57:48 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 11
+[22-Jun-2025 20:57:48 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php:11
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 11
+[22-Jun-2025 21:03:31 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 10
+[22-Jun-2025 21:03:31 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php:10
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 10
+[22-Jun-2025 21:09:26 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 10
+[22-Jun-2025 21:09:26 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php:10
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 10
+[22-Jun-2025 21:10:52 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 10
+[22-Jun-2025 21:10:52 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php:10
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\profile.php on line 10
+[22-Jun-2025 21:14:27 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:14:27 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:19:22 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\users.php on line 24
+[22-Jun-2025 21:19:22 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\users.php:24
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\users.php on line 24
+[22-Jun-2025 21:21:08 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:21:08 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:21:47 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:21:47 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:21:56 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:21:56 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:21:59 Africa/Kampala] PHP Warning:  Undefined variable $pdo in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59
+[22-Jun-2025 21:21:59 Africa/Kampala] PHP Fatal error:  Uncaught Error: Call to a member function query() on null in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php:59
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\get_users.php on line 59

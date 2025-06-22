@@ -44,14 +44,17 @@ try {
     // Destroy the session
     session_destroy();
 
-    // Log the logout action
+        // Log the logout action and send notification
     if ($username) {
         error_log("User logged out: " . $username);
+        
+        // Store username for notification before destroying session
+        $_SESSION['last_logged_out_user'] = $username;
     }
 
     // Return JSON response for AJAX requests
     if ($isAjax) {
-        sendResponse(true, 'Logout successful');
+        sendResponse(true, 'Logout successful', ['username' => $username]);
     }
     
     // For non-AJAX requests, redirect to login page

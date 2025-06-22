@@ -431,3 +431,152 @@
     [notes] => 
 )
 
+[19-Jun-2025 14:51:52 Europe/Berlin] API Request: {"timestamp":"2025-06-19 14:51:52","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":6,"stock":null}}
+[19-Jun-2025 15:52:23 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 6
+                    [quantity] => 1
+                    [unit_price] => 4000
+                    [tax_rate_id] => 1
+                    [tax_amount] => 720
+                    [discount_amount] => 0
+                    [subtotal] => 4000
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 4720
+    [tax_amount] => 720
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[19-Jun-2025 15:52:23 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'product_name' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(179): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[19-Jun-2025 15:52:32 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 6
+                    [quantity] => 1
+                    [unit_price] => 4000
+                    [tax_rate_id] => 1
+                    [tax_amount] => 720
+                    [discount_amount] => 0
+                    [subtotal] => 4000
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 4720
+    [tax_amount] => 720
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[19-Jun-2025 15:52:32 Africa/Kampala] Error processing sale: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'product_name' in 'field list'
+#0 C:\xampp\htdocs\MTECH UGANDA\public\management\ajax\save_sale.php(179): PDO->prepare('INSERT INTO sal...')
+#1 {main}
+[19-Jun-2025 14:54:15 Europe/Berlin] API Request: {"timestamp":"2025-06-19 14:54:15","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":6,"stock":null}}
+[19-Jun-2025 15:54:19 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 6
+                    [quantity] => 1
+                    [unit_price] => 4000
+                    [tax_rate_id] => 1
+                    [tax_amount] => 720
+                    [discount_amount] => 0
+                    [subtotal] => 4000
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 4720
+    [tax_amount] => 720
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[19-Jun-2025 15:02:32 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:02:32","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":6,"stock":null}}
+[19-Jun-2025 15:06:42 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:06:42","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":6,"stock":null}}
+[19-Jun-2025 16:07:35 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 6
+                    [quantity] => 1
+                    [unit_price] => 4000
+                    [tax_rate_id] => 1
+                    [tax_amount] => 720
+                    [discount_amount] => 0
+                    [subtotal] => 4000
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 4720
+    [tax_amount] => 720
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[19-Jun-2025 15:08:19 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:08:19","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":6,"stock":null}}
+[19-Jun-2025 15:11:10 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:11:10","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":6,"stock":null}}
+[19-Jun-2025 15:14:44 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:14:44","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":6,"stock":null}}
+[19-Jun-2025 15:16:07 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:16:07","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"productId":6,"newStock":null}}
+[19-Jun-2025 16:16:29 Africa/Kampala] Received data: Array
+(
+    [customer_id] => 
+    [user_id] => 1
+    [items] => Array
+        (
+            [0] => Array
+                (
+                    [product_id] => 6
+                    [quantity] => 1
+                    [unit_price] => 4000
+                    [tax_rate_id] => 1
+                    [tax_amount] => 720
+                    [discount_amount] => 0
+                    [subtotal] => 4000
+                )
+
+        )
+
+    [payment_type] => cash
+    [total_amount] => 4720
+    [tax_amount] => 720
+    [discount_amount] => 0
+    [notes] => 
+)
+
+[19-Jun-2025 15:16:42 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:16:42","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"productId":6,"newStock":null}}
+[19-Jun-2025 15:19:43 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:19:43","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":6,"stock":null}}
+[19-Jun-2025 15:25:23 Europe/Berlin] API Request: {"timestamp":"2025-06-19 15:25:23","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"6","stock":"NaN"}}
+[20-Jun-2025 19:33:33 Europe/Berlin] API Request: {"timestamp":"2025-06-20 19:33:33","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"6","stock":"NaN"}}
+[20-Jun-2025 21:53:59 Europe/Berlin] API Request: {"timestamp":"2025-06-20 21:53:59","method":"POST","uri":"\/MTECH%20UGANDA\/public\/api\/update_stock.php","data":{"product_id":"6","stock":"NaN"}}

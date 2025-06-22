@@ -4,6 +4,40 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+/**
+ * Logs a login attempt to the database
+ * 
+ * @param int|null $userId The user ID if user exists
+ * @param string $username The username used in the attempt
+ * @param string $ipAddress The IP address of the client
+ * @param string|null $userAgent The user agent string of the client
+ * @param bool $success Whether the login was successful
+ * @return bool True if the log was successful, false otherwise
+ */
+function logLoginAttempt($userId, $username, $ipAddress, $userAgent = null, $success = false) {
+    try {
+        $db = get_db_connection();
+        
+        $stmt = $db->prepare("
+            INSERT INTO login_attempts 
+            (user_id, username, ip_address, user_agent, success) 
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        
+        return $stmt->execute([
+            $userId,
+            $username,
+            $ipAddress,
+            $userAgent,
+            $success ? 1 : 0
+        ]);
+    } catch (Exception $e) {
+        // Log the error but don't break the login flow
+        error_log('Failed to log login attempt: ' . $e->getMessage());
+        return false;
+    }
+}
+
 // Define a site name constant if it doesn't exist (in case config.php fails)
 if (!defined('SITE_NAME')) {
     define('SITE_NAME', 'MTECH UGANDA');
@@ -40,8 +74,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
     $username = isset($_POST['username']) ? trim($_POST['username']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     
+    // Get client IP and user agent for logging
+    $ip_address = $_SERVER['REMOTE_ADDR'];
+    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    
     // Validate input
     if (empty($username) || empty($password)) {
+        // Log failed attempt (missing credentials)
+        logLoginAttempt(null, $username, $ip_address, $user_agent, false);
         echo json_encode(['success' => false, 'message' => 'Username and password are required']);
         exit();
     }
@@ -57,14 +97,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
         // Get database connection
         $db = get_db_connection();
         
-        // Query to check user credentials
-        $stmt = $db->prepare("SELECT id, username, password, name as full_name, role FROM users WHERE username = ? AND active = 1");
+        // Query to check user credentials (check active status in the query)
+        $stmt = $db->prepare("SELECT id, username, password, name as full_name, role, active FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
         
+        // Check if user exists and is active
+        if (!$user || $user['active'] != 1) {
+            // Log failed attempt (user not found or inactive)
+            $userId = $user ? $user['id'] : null;
+            logLoginAttempt($userId, $username, $ip_address, $user_agent, false);
+            echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
+            exit();
+        }
+        
         // If user exists and password matches (or it's the default password for admin)
-        if ($user && (password_verify($password, $user['password']) || 
-                      ($username === 'admin' && $password === 'password' && $user['password'] === '$2y$10$uoU/U5J0MKeASy.2mHvkF.Rme.ZmlxksXAjNQHbw2UwBfSvwTr8EO'))) {
+        if (password_verify($password, $user['password']) || 
+            ($username === 'admin' && $password === 'password' && $user['password'] === '$2y$10$uoU/U5J0MKeASy.2mHvkF.Rme.ZmlxksXAjNQHbw2UwBfSvwTr8EO')) {
+            // Log successful login attempt
+            logLoginAttempt($user['id'], $username, $ip_address, $user_agent, true);
+            
             // Simulate a short processing delay for UX
             sleep(1);
             
@@ -74,17 +126,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
             $_SESSION['full_name'] = $user['full_name'];
             $_SESSION['role'] = $user['role'];
             $_SESSION['last_activity'] = time();
+            $_SESSION['login_time'] = time();
             
             // Return success response
             echo json_encode(['success' => true, 'redirect' => 'index.php']);
         } else {
+            // Log failed login attempt (wrong password)
+            logLoginAttempt($user['id'], $username, $ip_address, $user_agent, false);
+            
             // Return error for invalid credentials
             echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
         }
     } catch (PDOException $e) {
         // Log error (don't expose details to client)
         error_log('Login error: ' . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        
+        // Log failed attempt due to database error
+        if (isset($username)) {
+            logLoginAttempt(null, $username, $ip_address ?? null, $user_agent ?? null, false);
+        }
+        
+        echo json_encode(['success' => false, 'message' => 'A system error occurred. Please try again.']);
     }
     
     exit();
@@ -495,6 +557,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Email Notifications -->
+    <script src="/MTECH%20UGANDA/public/js/email-notifications.js"></script>
     
     <script>
         $(document).ready(function() {
@@ -584,21 +648,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
                             // Show success message before redirect
                             $('#statusMessage').text('Login successful! Redirecting...');
                             
+                            // Send login notification
+                            if (typeof EmailNotifications !== 'undefined') {
+                                const username = $('input[name="username"]').val();
+                                EmailNotifications.trackLogin(username);
+                            }
+                            
                             // Redirect after a short delay
                             setTimeout(function() {
-                                window.location.href = response.redirect;
+                                window.location.href = response.redirect || 'dashboard.php';
                             }, 1000);
-                        } else {
-                            // Hide loading overlay
-                            $('#loadingOverlay').hide();
-                            
-                            // Show error message
-                            showError(response.message);
-                            
-                            // If it's a database connection error, show link to diagnostic page
-                            if (response.message.includes('MySQL') || response.message.includes('database')) {
-                                $('#alertMessage').append('<br><br><strong>Need help?</strong> <a href="db_test.php">Click here</a> to run database diagnostics.');
-                            }
                         }
                     },
                     error: function(xhr, status, error) {

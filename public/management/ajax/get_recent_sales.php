@@ -31,7 +31,7 @@ try {
                             d.paid_status,
                             d.payment_method,
                             cs.name as customer_name,
-                            u.full_name as user_name
+                            u.name as user_name
                         FROM documents d
                         LEFT JOIN customers_suppliers cs ON d.customer_id = cs.id
                         LEFT JOIN users u ON d.user_id = u.id
@@ -57,7 +57,7 @@ try {
                             s.paid_status,
                             s.payment_method,
                             c.name as customer_name,
-                            u.full_name as user_name
+                            u.name as user_name
                         FROM sales s
                         LEFT JOIN customers c ON s.customer_id = c.id
                         LEFT JOIN users u ON s.user_id = u.id

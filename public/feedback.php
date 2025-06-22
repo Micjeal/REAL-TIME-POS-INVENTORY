@@ -1,470 +1,264 @@
 <?php
-// Start the session
-session_start();
+require_once __DIR__ . '/config.php';
 
-// Include database configuration
-require_once 'config.php';
-require_once 'includes/NotificationHelper.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    // Redirect to login page
-    header('Location: login.php');
+// Check if user is logged in and has admin/manager role
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['admin', 'manager'])) {
+    header('Location: /MTECH%20UGANDA/public/login.php');
     exit();
 }
 
-// Get user data
-$user_id = $_SESSION['user_id'];
-$username = $_SESSION['username'];
-$user_fullname = $_SESSION['full_name'] ?? $username;
-$user_role = strtolower($_SESSION['role'] ?? 'cashier');
-$is_admin = in_array($user_role, ['admin', 'manager']);
-$success_message = '';
-$error_message = '';
+$page_title = 'Feedback Management';
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
-    $subject = trim($_POST['subject'] ?? '');
-    $message = trim($_POST['message'] ?? '');
-    $rating = !empty($_POST['rating']) ? (int)$_POST['rating'] : null;
-    
-    // Validate input
-    if (empty($subject) || empty($message)) {
-        $error_message = 'Please fill in all required fields.';
-    } else {
-        try {
-            $db = get_db_connection();
-            $stmt = $db->prepare("INSERT INTO feedback (user_id, subject, message, rating) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$user_id, $subject, $message, $rating]);
-            
-            // Send notification to all admins/managers
-            $notificationHelper = new NotificationHelper($db);
-            $ratingText = $rating ? " (Rating: " . str_repeat('★', $rating) . str_repeat('☆', 5 - $rating) . ")" : "";
-            $notificationTitle = "New Feedback: " . htmlspecialchars($subject);
-            $notificationMessage = "New feedback received from " . htmlspecialchars($user_fullname) . $ratingText . ". Click to view details.";
-            
-            // Send to all admins/managers
-            $notificationHelper->addNotification(
-                $notificationTitle,
-                $notificationMessage,
-                'info',
-                null, // null means send to all admins/managers
-                'management/feedback.php' // Link to view all feedback
-            );
-            
-            $success_message = 'Thank you for your feedback! We will review it shortly.';
-            // Clear form
-            $_POST = [];
-        } catch (PDOException $e) {
-            $error_message = 'Error submitting feedback. Please try again later.';
-            error_log('Feedback submission error: ' . $e->getMessage());
-        }
-    }
-}
-
-// Get feedback for admin/manager view
-$feedback_list = [];
-if ($is_admin) {
-    try {
-        $db = get_db_connection();
-        $query = "SELECT f.*, u.username, u.full_name 
-                 FROM feedback f 
-                 JOIN users u ON f.user_id = u.id 
-                 ORDER BY f.status = 'new' DESC, f.created_at DESC";
-        $feedback_list = $db->query($query)->fetchAll();
-    } catch (PDOException $e) {
-        $error_message = 'Error loading feedback. Please try again later.';
-        error_log('Feedback load error: ' . $e->getMessage());
-    }
-}
+// Include header
+require_once __DIR__ . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback - <?php echo SITE_NAME; ?></title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <style>
-        :root {
-            --dark-bg: #1e2130;
-            --med-bg: #2a2e43;
-            --light-bg: #3a3f55;
-            --text-light: #f0f0f0;
-            --text-muted: #a0a0a0;
-            --accent-blue: #3584e4;
-            --accent-green: #2fac66;
-            --accent-red: #e35d6a;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--dark-bg);
-            color: var(--text-light);
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .card {
-            background-color: var(--med-bg);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .card-header {
-            background-color: var(--light-bg);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding: 15px 20px;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .card-body {
-            padding: 20px;
-        }
-        
-        .form-control, .form-control:focus {
-            background-color: var(--dark-bg);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--text-light);
-        }
-        
-        .form-control:focus {
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 0 0.2rem rgba(53, 132, 228, 0.25);
-        }
-        
-        .btn-primary {
-            background-color: var(--accent-blue);
-            border: none;
-            padding: 8px 20px;
-            font-weight: 500;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2a6fc9;
-        }
-        
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: capitalize;
-        }
-        
-        .status-new {
-            background-color: rgba(53, 132, 228, 0.2);
-            color: var(--accent-blue);
-        }
-        
-        .status-in_progress {
-            background-color: rgba(255, 193, 7, 0.2);
-            color: #ffc107;
-        }
-        
-        .status-resolved {
-            background-color: rgba(40, 167, 69, 0.2);
-            color: #28a745;
-        }
-        
-        .feedback-item {
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding: 15px 0;
-        }
-        
-        .feedback-item:last-child {
-            border-bottom: none;
-        }
-        
-        .feedback-meta {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 5px;
-        }
-        
-        .feedback-actions {
-            margin-top: 10px;
-        }
-        
-        .btn-sm {
-            padding: 2px 8px;
-            font-size: 12px;
-            margin-right: 5px;
-        }
-        
-        .alert {
-            border: none;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        
-        .alert-success {
-            background-color: rgba(40, 167, 69, 0.2);
-            color: #28a745;
-        }
-        
-        .alert-danger {
-            background-color: rgba(220, 53, 69, 0.2);
-            color: #dc3545;
-        }
-        
-        /* Star Rating Styles */
-        .rating-stars {
-            display: flex;
-            flex-direction: row-reverse;
-            justify-content: flex-end;
-            margin: 10px 0;
-        }
-        
-        .rating-stars input[type="radio"] {
-            display: none;
-        }
-        
-        .rating-stars label {
-            color: #ddd;
-            font-size: 28px;
-            padding: 0 3px;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        
-        .rating-stars label:hover,
-        .rating-stars label:hover ~ label,
-        .rating-stars input[type="radio"]:checked ~ label {
-            color: #ffc107;
-        }
-        
-        .rating-stars input[type="radio"]:checked ~ label {
-            color: #ffc107;
-        }
-        
-        .rating-value {
-            margin-left: 10px;
-            font-weight: bold;
-            color: #ffc107;
-        }
-    </style>
-</head>
-<body>
-    <?php include 'header.php'; ?>
-    
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-12">
-                <h2><i class="fas fa-comment-dots"></i> Feedback</h2>
-                <hr>
-                
-                <?php if ($success_message): ?>
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
-                    </div>
-                <?php endif; ?>
-                
-                <?php if ($error_message): ?>
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (!$is_admin): ?>
-                <!-- Feedback Form for Regular Users -->
-                <div class="card">
-                    <div class="card-header">
-                        <span><i class="fas fa-paper-plane"></i> Submit Feedback</span>
-                    </div>
-                    <div class="card-body">
-                        <form method="POST" action="feedback.php">
-                            <div class="form-group">
-                                <label for="subject">Subject</label>
-                                <input type="text" class="form-control" id="subject" name="subject" 
-                                       value="<?php echo htmlspecialchars($_POST['subject'] ?? ''); ?>" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="message">Message</label>
-                                <textarea class="form-control" id="message" name="message" rows="5" required><?php 
-                                    echo htmlspecialchars($_POST['message'] ?? ''); 
-                                ?></textarea>
-                            </div>
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4"><?php echo htmlspecialchars($page_title); ?></h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+        <li class="breadcrumb-item active">Feedback</li>
+    </ol>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-comments me-1"></i>
+            User Feedback
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="feedbackTable" class="table table-striped table-bordered" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Subject</th>
+                            <th>Rating</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        try {
+                            $stmt = $pdo->query("
+                                SELECT f.*, u.username, u.name as user_name 
+                                FROM feedback f 
+                                JOIN users u ON f.user_id = u.id 
+                                ORDER BY f.created_at DESC
+                            ");
                             
-                            <div class="form-group">
-                                <label>Rating (Optional)</label>
-                                <div class="rating-stars mb-3">
-                                    <input type="radio" id="star5" name="rating" value="5" <?php echo (isset($_POST['rating']) && $_POST['rating'] == 5) ? 'checked' : ''; ?> />
-                                    <label for="star5" title="5 stars"><i class="fas fa-star"></i></label>
-                                    
-                                    <input type="radio" id="star4" name="rating" value="4" <?php echo (isset($_POST['rating']) && $_POST['rating'] == 4) ? 'checked' : ''; ?> />
-                                    <label for="star4" title="4 stars"><i class="fas fa-star"></i></label>
-                                    
-                                    <input type="radio" id="star3" name="rating" value="3" <?php echo (isset($_POST['rating']) && $_POST['rating'] == 3) ? 'checked' : ''; ?> />
-                                    <label for="star3" title="3 stars"><i class="fas fa-star"></i></label>
-                                    
-                                    <input type="radio" id="star2" name="rating" value="2" <?php echo (isset($_POST['rating']) && $_POST['rating'] == 2) ? 'checked' : ''; ?> />
-                                    <label for="star2" title="2 stars"><i class="fas fa-star"></i></label>
-                                    
-                                    <input type="radio" id="star1" name="rating" value="1" <?php echo (isset($_POST['rating']) && $_POST['rating'] == 1) ? 'checked' : ''; ?> />
-                                    <label for="star1" title="1 star"><i class="fas fa-star"></i></label>
-                                </div>
-                            </div>
-                            <button type="submit" name="submit_feedback" class="btn btn-primary">
-                                <i class="fas fa-paper-plane"></i> Submit Feedback
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                <?php endif; ?>
-                
-                <!-- Feedback List for Admin/Manager -->
-                <?php if ($is_admin): ?>
-                <div class="card">
-                    <div class="card-header">
-                        <span><i class="fas fa-inbox"></i> Feedback Inbox</span>
-                        <span class="badge badge-info"><?php echo count($feedback_list); ?> items</span>
-                    </div>
-                    <div class="card-body">
-                        <?php if (empty($feedback_list)): ?>
-                            <div class="text-center text-muted py-4">
-                                <i class="fas fa-inbox fa-3x mb-3"></i>
-                                <p>No feedback has been submitted yet.</p>
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($feedback_list as $feedback): ?>
-                                <div class="feedback-item">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="d-flex justify-content-between align-items-center w-100">
-                                        <h5 class="mb-0"><?php echo htmlspecialchars($feedback['subject']); ?></h5>
-                                        <div class="d-flex align-items-center">
-                                            <?php if (!empty($feedback['rating'])): ?>
-                                                <div class="rating-display mr-3" title="Rating: <?php echo $feedback['rating']; ?>/5">
-                                                    <?php 
-                                                    $fullStars = (int)$feedback['rating'];
-                                                    $emptyStars = 5 - $fullStars;
-                                                    echo str_repeat('★', $fullStars) . str_repeat('☆', $emptyStars);
-                                                    ?>
-                                                </div>
-                                            <?php endif; ?>
-                                            <span class="status-badge status-<?php echo $feedback['status']; ?>">
-                                                <?php echo str_replace('_', ' ', $feedback['status']); ?>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    </div>
-                                    <div class="feedback-meta">
-                                        Submitted by <?php echo htmlspecialchars($feedback['full_name'] ?? $feedback['username']); ?> 
-                                        on <?php echo date('M j, Y g:i A', strtotime($feedback['created_at'])); ?>
-                                    </div>
-                                    <div class="feedback-message">
-                                        <?php echo nl2br(htmlspecialchars($feedback['message'])); ?>
-                                    </div>
-                                    <div class="feedback-actions">
-                                        <?php if ($feedback['status'] !== 'resolved'): ?>
-                                            <a href="#" class="btn btn-sm btn-success btn-update-status" 
-                                               data-id="<?php echo $feedback['id']; ?>" data-status="resolved">
-                                                <i class="fas fa-check"></i> Mark as Resolved
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if ($feedback['status'] !== 'in_progress'): ?>
-                                            <a href="#" class="btn btn-sm btn-warning btn-update-status" 
-                                               data-id="<?php echo $feedback['id']; ?>" data-status="in_progress">
-                                                <i class="fas fa-spinner"></i> In Progress
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if ($feedback['status'] !== 'new'): ?>
-                                            <a href="#" class="btn btn-sm btn-info btn-update-status" 
-                                               data-id="<?php echo $feedback['id']; ?>" data-status="new">
-                                                <i class="fas fa-undo"></i> Reopen
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
+                            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                echo '<tr>';
+                                echo '<td>' . htmlspecialchars($row['id']) . '</td>';
+                                echo '<td>' . htmlspecialchars($row['user_name'] . ' (' . $row['username'] . ')') . '</td>';
+                                echo '<td>' . htmlspecialchars($row['subject']) . '</td>';
+                                echo '<td class="text-warning">' . str_repeat('★', $row['rating']) . str_repeat('☆', 5 - $row['rating']) . '</td>';
+                                
+                                // Status badge
+                                $statusClass = '';
+                                switch ($row['status']) {
+                                    case 'new':
+                                        $statusClass = 'bg-primary';
+                                        break;
+                                    case 'in_progress':
+                                        $statusClass = 'bg-warning text-dark';
+                                        break;
+                                    case 'resolved':
+                                        $statusClass = 'bg-success';
+                                        break;
+                                }
+                                echo '<td><span class="badge ' . $statusClass . '">' . ucfirst(str_replace('_', ' ', $row['status'])) . '</span></td>';
+                                
+                                echo '<td>' . date('M d, Y H:i', strtotime($row['created_at'])) . '</td>';
+                                
+                                // Actions
+                                echo '<td>';
+                                echo '<button class="btn btn-sm btn-info view-message" data-bs-toggle="modal" data-bs-target="#viewMessageModal" 
+                                      data-subject="' . htmlspecialchars($row['subject']) . '" 
+                                      data-message="' . htmlspecialchars($row['message']) . '"
+                                      data-rating="' . $row['rating'] . '">
+                                    <i class="fas fa-eye"></i> View
+                                </button> ';
+                                
+                                if (($_SESSION['user_role'] ?? '') === 'admin') {
+                                    echo '<div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item update-status" href="#" data-id="' . $row['id'] . '" data-status="new">Mark as New</a></li>
+                                            <li><a class="dropdown-item update-status" href="#" data-id="' . $row['id'] . '" data-status="in_progress">Mark as In Progress</a></li>
+                                            <li><a class="dropdown-item update-status" href="#" data-id="' . $row['id'] . '" data-status="resolved">Mark as Resolved</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger delete-feedback" href="#" data-id="' . $row['id'] . '"><i class="fas fa-trash-alt me-1"></i> Delete</a></li>
+                                        </ul>
+                                    </div>';
+                                }
+                                echo '</td>';
+                                echo '</tr>';
+                            }
+                        } catch (PDOException $e) {
+                            echo '<tr><td colspan="7" class="text-center text-danger">Error loading feedback: ' . htmlspecialchars($e->getMessage()) . '</td></tr>';
+                        }
+                        ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- jQuery and Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    
-    <script>
-    $(document).ready(function() {
-        // Star rating hover effect
-        $('.rating-stars label').hover(
-            function() {
-                $(this).prevAll().addBack().children('i').removeClass('far').addClass('fas');
-                $(this).nextAll().children('i').removeClass('fas').addClass('far');
-            },
-            function() {
-                $('.rating-stars input[type="radio"]:checked').each(function() {
-                    $(this).prevAll().addBack().nextAll().children('i').removeClass('fas').addClass('far');
-                    $(this).prevAll().addBack().children('i').removeClass('far').addClass('fas');
-                });
+<!-- View Message Modal -->
+<div class="modal fade" id="viewMessageModal" tabindex="-1" aria-labelledby="viewMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewMessageModalLabel">Feedback Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="feedbackSubject"></h4>
+                <div class="mb-3">
+                    <span id="feedbackRating" class="text-warning"></span>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <p id="feedbackMessage" class="mb-0"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this feedback? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
+
+<!-- Page level plugins -->
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    var table = $('#feedbackTable').DataTable({
+        responsive: true,
+        order: [[0, 'desc']], // Sort by ID descending (newest first)
+        columnDefs: [
+            { orderable: false, targets: [6] } // Disable sorting on actions column
+        ]
+    });
+
+    // View message in modal
+    $('#viewMessageModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var subject = button.data('subject');
+        var message = button.data('message');
+        var rating = button.data('rating');
+        
+        var modal = $(this);
+        modal.find('.modal-title').text('Feedback: ' + subject);
+        modal.find('#feedbackSubject').text(subject);
+        modal.find('#feedbackMessage').text(message);
+        
+        // Create star rating display
+        var stars = '';
+        for (var i = 1; i <= 5; i++) {
+            if (i <= rating) {
+                stars += '★';
+            } else {
+                stars += '☆';
             }
-        );
+        }
+        modal.find('#feedbackRating').html(stars);
+    });
+
+    // Update status
+    $('body').on('click', '.update-status', function(e) {
+        e.preventDefault();
+        var feedbackId = $(this).data('id');
+        var newStatus = $(this).data('status');
         
-        // Handle star click
-        $('.rating-stars input[type="radio"]').on('change', function() {
-            const rating = $(this).val();
-            console.log('Selected rating:', rating);
-        });
-        
-        // Handle status update
-        $('.btn-update-status').on('click', function(e) {
-            e.preventDefault();
-            
-            const button = $(this);
-            const feedbackId = button.data('id');
-            const newStatus = button.data('status');
-            
-            // Show loading state
-            const originalText = button.html();
-            button.html('<i class="fas fa-spinner fa-spin"></i> Updating...').prop('disabled', true);
-            
-            // Send AJAX request to update status
-            $.ajax({
-                url: 'ajax/update_feedback_status.php',
-                type: 'POST',
-                data: {
-                    id: feedbackId,
-                    status: newStatus
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        // Reload the page to show updated status
-                        location.reload();
-                    } else {
-                        alert('Error updating status: ' + (response.message || 'Unknown error'));
-                        button.html(originalText).prop('disabled', false);
-                    }
-                },
-                error: function() {
-                    alert('Error updating status. Please try again.');
-                    button.html(originalText).prop('disabled', false);
+        $.ajax({
+            url: 'ajax/update_feedback_status.php',
+            type: 'POST',
+            data: {
+                id: feedbackId,
+                status: newStatus,
+                csrf_token: '<?php echo $_SESSION['csrf_token'] ?? ''; ?>'
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Reload the page to show updated status
+                    location.reload();
+                } else {
+                    alert('Error updating status: ' + (response.message || 'Unknown error'));
                 }
-            });
+            },
+            error: function() {
+                alert('Error communicating with server');
+            }
         });
     });
-    </script>
-</body>
-</html>
+
+    // Delete feedback
+    var feedbackIdToDelete;
+    
+    $('body').on('click', '.delete-feedback', function(e) {
+        e.preventDefault();
+        feedbackIdToDelete = $(this).data('id');
+        $('#deleteModal').modal('show');
+    });
+    
+    $('#confirmDelete').on('click', function() {
+        if (!feedbackIdToDelete) return;
+        
+        $.ajax({
+            url: 'ajax/delete_feedback.php',
+            type: 'POST',
+            data: {
+                id: feedbackIdToDelete,
+                csrf_token: '<?php echo $_SESSION['csrf_token'] ?? ''; ?>'
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Close modal and reload
+                    $('#deleteModal').modal('hide');
+                    location.reload();
+                } else {
+                    alert('Error deleting feedback: ' + (response.message || 'Unknown error'));
+                }
+            },
+            error: function() {
+                alert('Error communicating with server');
+            }
+        });
+    });
+});
+</script>

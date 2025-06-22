@@ -12,7 +12,27 @@ if (!isset($_SESSION['user_id'])) {
 
 // Get user data
 $user_fullname = $_SESSION['full_name'] ?? $_SESSION['username'];
-$user_role = $_SESSION['role'] ?? 'cashier';
+$user_role = $_SESSION['role'] ?? 'cashrier';
+$unread_feedback_count = 0;
+
+// Get unread feedback count for admins/managers
+if (in_array($user_role, ['admin', 'manager'])) {
+    try {
+        require_once __DIR__ . '/../config.php';
+        $db = get_db_connection();
+        
+        $stmt = $db->prepare("
+            SELECT COUNT(*) as count 
+            FROM feedback 
+            WHERE status = 'new'
+        ");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $unread_feedback_count = (int)$result['count'];
+    } catch (PDOException $e) {
+        error_log('Error getting unread feedback count: ' . $e->getMessage());
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -523,6 +543,14 @@ $user_role = $_SESSION['role'] ?? 'cashier';
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
+            
+            <a href="feedback.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'feedback.php' ? 'active' : ''; ?>">
+                <i class="fas fa-comment-dots"></i>
+                <span>Feedback</span>
+                <?php if ($unread_feedback_count > 0): ?>
+                    <span class="badge badge-danger badge-pill ml-auto"><?php echo $unread_feedback_count; ?></span>
+                <?php endif; ?>
+            </a>
             <?php endif; ?>
         </div>
         
@@ -534,6 +562,10 @@ $user_role = $_SESSION['role'] ?? 'cashier';
                 </a>
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
                     <a class="dropdown-item" href="profile.php"><i class="fas fa-user-edit mr-2"></i>My Profile</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="submit-feedback.php">
+                        <i class="fas fa-comment-dots mr-2"></i>Submit Feedback
+                    </a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item text-danger" href="#" id="logoutBtn">
                         <i class="fas fa-sign-out-alt mr-2"></i>Logout

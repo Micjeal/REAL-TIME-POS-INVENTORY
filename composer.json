@@ -1,0 +1,13 @@
+{
+    "name": "mtechuganda/pos-system",
+    "description": "MTECH UGANDA Point of Sale System",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "MTECH\\": "includes/"
+        }
+    }
+}

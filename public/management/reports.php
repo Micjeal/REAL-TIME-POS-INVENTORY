@@ -9,7 +9,6 @@ require_once '../config.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
     header('Location: ../login.php');
     exit();
 }
@@ -18,429 +17,160 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 $user_fullname = $_SESSION['full_name'] ?? $username;
-$user_role = strtolower($_SESSION['role'] ?? 'cashier');
+$user_role = $_SESSION['role'] ?? 'cashier';
 
-// Check if user has permission to access reports
-$allowed_roles = ['admin', 'manager', 'accountant'];
-if (!in_array($user_role, $allowed_roles)) {
-    $_SESSION['error_message'] = 'You do not have permission to access the reports section.';
-    header('Location: index.php');
+// Check if user has reporting access
+if (!in_array($user_role, ['admin', 'manager'])) {
+    header('Location: ../welcome.php');
     exit();
 }
 
 // Initialize variables
-$error_message = $_SESSION['error_message'] ?? '';
-$success_message = $_SESSION['success_message'] ?? '';
-unset($_SESSION['error_message'], $_SESSION['success_message']);
+$error_message = '';
+$success_message = '';
+$report_data = [];
+$filters = [
+    'date_start' => date('Y-m-d', strtotime('-30 days')),
+    'date_end' => date('Y-m-d'),
+    'report_type' => 'sales_summary'
+];
 
-// Set default date range (last 30 days)
-$default_end_date = date('Y-m-d');
-$default_start_date = date('Y-m-d', strtotime('-30 days'));
+// Initialize database connection
+$db = get_db_connection();
 
-// Get current date values from request or use defaults
-$start_date = $_REQUEST['start_date'] ?? $default_start_date;
-$end_date = $_REQUEST['end_date'] ?? $default_end_date;
-$report_type = $_REQUEST['report_type'] ?? 'sales_summary';
-$customer_id = $_REQUEST['customer_id'] ?? null;
-$category_id = $_REQUEST['category_id'] ?? null;
-$product_id = $_REQUEST['product_id'] ?? null;
-$format = $_REQUEST['format'] ?? 'html';
-
-// Initialize arrays
-$users = [];
-$products = [];
-$categories = [];
-$customers = [];
-$suppliers = [];
-$payment_methods = [];
-$tax_rates = [];
-$locations = [];
-
-/**
- * Build category tree for dropdown
- */
-function buildCategoryTree($parent_id, $grouped_categories, $level = 0, $selected_id = null) {
-    if (!isset($grouped_categories[$parent_id])) return '';
+// Process filters
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'apply_filters') {
+    $filters['date_start'] = filter_input(INPUT_POST, 'date_start', FILTER_SANITIZE_STRING) ?: $filters['date_start'];
+    $filters['date_end'] = filter_input(INPUT_POST, 'date_end', FILTER_SANITIZE_STRING) ?: $filters['date_end'];
+    $filters['report_type'] = filter_input(INPUT_POST, 'report_type', FILTER_SANITIZE_STRING) ?: $filters['report_type'];
     
-    $html = '';
-    foreach ($grouped_categories[$parent_id] as $category) {
-        $selected = ($selected_id == $category['id']) ? 'selected' : '';
-        $html .= sprintf(
-            '<option value="%s" %s>%s%s</option>',
-            $category['id'],
-            $selected,
-            str_repeat('  ', $level * 2) . htmlspecialchars($category['name']),
-            !empty($category['product_count']) ? ' (' . $category['product_count'] . ')' : ''
-        );
-        $html .= buildCategoryTree($category['id'], $grouped_categories, $level + 1, $selected_id);
+    // Validate dates
+    if (!DateTime::createFromFormat('Y-m-d', $filters['date_start']) || 
+        !DateTime::createFromFormat('Y-m-d', $filters['date_end']) ||
+        $filters['date_start'] > $filters['date_end']) {
+        $error_message = 'Invalid date range selected.';
+        $filters['date_start'] = date('Y-m-d', strtotime('-30 days'));
+        $filters['date_end'] = date('Y-m-d');
     }
-    return $html;
 }
 
-// Initialize database connection and load data
+// Fetch report data based on report type
 try {
-    $db = get_db_connection();
-    
-    // Load active users
-    $stmt = $db->prepare("SELECT id, username, name as full_name, role, email, active as is_active 
-                         FROM users 
-                         WHERE active = 1 
-                         ORDER BY name");
-    $stmt->execute();
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Load products
-    $stmt = $db->prepare("SELECT p.id, p.code as sku, p.name, p.description, p.price, p.cost, 
-                         p.stock_quantity, p.min_stock as reorder_level, p.barcode,
-                         p.tax_rate_id as is_taxable, p.tax_rate_id, p.category_id, 
-                         c.name as category_name, c.parent_id as category_parent_id
-                         FROM products p
-                         LEFT JOIN categories c ON p.category_id = c.id
-                         WHERE p.active = 1
-                         ORDER BY p.name");
-    $stmt->execute();
-    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Load categories
-    $stmt = $db->prepare("SELECT id, name, parent_id, 
-                         (SELECT COUNT(*) FROM products WHERE category_id = pc.id) as product_count
-                         FROM categories pc
-                         WHERE active = 1
-                         ORDER BY parent_id, name");
-    $stmt->execute();
-    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Load customers
-    $stmt = $db->prepare("SELECT id, name, email, phone, address, 
-                         type as customer_type, tax_number, 0 as credit_limit, 0 as balance,
-                         (SELECT COUNT(*) FROM documents WHERE customer_id = c.id AND document_type IN ('invoice', 'receipt')) as total_purchases,
-                         (SELECT COALESCE(SUM(total), 0) FROM documents WHERE customer_id = c.id AND document_type IN ('invoice', 'receipt')) as total_spent,
-                         (SELECT MAX(document_date) FROM documents WHERE customer_id = c.id AND document_type IN ('invoice', 'receipt')) as last_purchase_date
-                         FROM customers c
-                         WHERE type IN ('customer', 'both') AND active = 1
-                         ORDER BY name");
-    $stmt->execute();
-    $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Load suppliers
-    $stmt = $db->prepare("SELECT id, name, email, phone, address, 
-                         tax_number as supplier_code, contact_person, notes, active
-                         FROM customers
-                         WHERE type IN ('supplier', 'both') AND active = 1
-                         ORDER BY name");
-    $stmt->execute();
-    $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Define payment methods directly since there's no payment_methods table
-    $payment_methods = [
-        [
-            'id' => 'cash',
-            'name' => 'Cash',
-            'description' => 'Cash payment',
-            'is_cash' => 1,
-            'is_credit_card' => 0,
-            'is_active' => 1,
-            'sort_order' => 1,
-            'fee_percentage' => 0
-        ],
-        [
-            'id' => 'card',
-            'name' => 'Credit/Debit Card',
-            'description' => 'Card payment',
-            'is_cash' => 0,
-            'is_credit_card' => 1,
-            'is_active' => 1,
-            'sort_order' => 2,
-            'fee_percentage' => 2.5
-        ],
-        [
-            'id' => 'mobile_money',
-            'name' => 'Mobile Money',
-            'description' => 'Mobile money payment',
-            'is_cash' => 0,
-            'is_credit_card' => 0,
-            'is_active' => 1,
-            'sort_order' => 3,
-            'fee_percentage' => 1.5
-        ]
-    ];
-    
-    // Convert to array of objects for consistency with database results
-    $payment_methods = array_map(function($method) {
-        return (object)$method;
-    }, $payment_methods);
-    
-    // Load tax rates
-    $stmt = $db->prepare("SELECT id, name, rate, 0 as is_compound, active as is_active, 
-                         '' as description, '' as tax_agency, '' as tax_account
-                         FROM tax_rates 
-                         WHERE active = 1 
-                         ORDER BY rate DESC");
-    $stmt->execute();
-    $tax_rates = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Define default location since there's no locations table in the database
-    $locations = [
-        [
-            'id' => 1,
-            'name' => 'Main Store',
-            'code' => 'MAIN',
-            'address' => '123 Main Street',
-            'phone' => '',
-            'email' => '',
-            'is_primary' => 1,
-            'is_active' => 1,
-            'manager_id' => null
-        ]
-    ];
-    
-    // Convert to array of objects for consistency with database results
-    $locations = array_map(function($location) {
-        return (object)$location;
-    }, $locations);
-    
-    // Log report access (suppress errors if activity_log table doesn't exist)
-    @$db->query("CREATE TABLE IF NOT EXISTS activity_log (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT,
-        action VARCHAR(100) NOT NULL,
-        details TEXT,
-        ip_address VARCHAR(50),
-        user_agent TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )");
-    
-    try {
-        $log_stmt = $db->prepare("INSERT INTO activity_log 
-                                 (user_id, action, details, ip_address, user_agent) 
-                                 VALUES (?, 'view_report', ?, ?, ?)");
-        $log_stmt->execute([
-            $user_id,
-            "Accessed reports page: " . ($report_type ?: 'Overview'),
-            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
-        ]);
-    } catch (PDOException $e) {
-        // Silently fail if logging fails
-        error_log('Failed to log activity: ' . $e->getMessage());
+    switch ($filters['report_type']) {
+        case 'sales_summary':
+            // Sales summary
+            $stmt = $db->prepare("SELECT 
+                COUNT(s.id) as total_sales,
+                SUM(s.total_amount) as total_revenue,
+                SUM(s.tax_amount) as total_tax,
+                SUM(s.discount_amount) as total_discount,
+                COUNT(DISTINCT s.customer_id) as unique_customers
+                FROM sales s
+                WHERE s.date BETWEEN :date_start AND :date_end");
+            $stmt->execute([
+                'date_start' => $filters['date_start'] . ' 00:00:00',
+                'date_end' => $filters['date_end'] . ' 23:59:59'
+            ]);
+            $report_data['summary'] = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Top selling products
+            $stmt = $db->prepare("SELECT 
+                p.name, p.code, 
+                SUM(si.quantity) as total_quantity,
+                SUM(si.subtotal) as total_sales
+                FROM sale_items si
+                JOIN products p ON si.product_id = p.id
+                JOIN sales s ON si.sale_id = s.id
+                WHERE s.date BETWEEN :date_start AND :date_end
+                GROUP BY p.id
+                ORDER BY total_sales DESC
+                LIMIT 5");
+            $stmt->execute([
+                'date_start' => $filters['date_start'] . ' 00:00:00',
+                'date_end' => $filters['date_end'] . ' 23:59:59'
+            ]);
+            $report_data['top_products'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'inventory_movements':
+            // Stock movements summary
+            $stmt = $db->prepare("SELECT 
+                SUM(CASE WHEN sm.type = 'in' THEN sm.quantity ELSE 0 END) as total_in,
+                SUM(CASE WHEN sm.type = 'out' THEN sm.quantity ELSE 0 END) as total_out,
+                SUM(CASE WHEN sm.type = 'adjustment' THEN sm.quantity ELSE 0 END) as total_adjustments,
+                COUNT(DISTINCT sm.product_id) as products_affected
+                FROM stock_movements sm
+                WHERE sm.created_at BETWEEN :date_start AND :date_end");
+            $stmt->execute([
+                'date_start' => $filters['date_start'] . ' 00:00:00',
+                'date_end' => $filters['date_end'] . ' 23:59:59'
+            ]);
+            $report_data['summary'] = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Recent movements
+            $stmt = $db->prepare("SELECT 
+                sm.*, p.name as product_name, p.code as product_code,
+                u.username as user_name
+                FROM stock_movements sm
+                JOIN products p ON sm.product_id = p.id
+                LEFT JOIN users u ON sm.user_id = u.id
+                WHERE sm.created_at BETWEEN :date_start AND :date_end
+                ORDER BY sm.created_at DESC
+                LIMIT 10");
+            $stmt->execute([
+                'date_start' => $filters['date_start'] . ' 00:00:00',
+                'date_end' => $filters['date_end'] . ' 23:59:59'
+            ]);
+            $report_data['recent_movements'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'customer_activity':
+            // Customer purchase history
+            $stmt = $db->prepare("SELECT 
+                c.name as customer_name,
+                COUNT(s.id) as purchase_count,
+                SUM(s.total_amount) as total_spent,
+                MAX(s.date) as last_purchase
+                FROM sales s
+                JOIN customers c ON s.customer_id = c.id
+                WHERE s.date BETWEEN :date_start AND :date_end
+                GROUP BY c.id
+                ORDER BY total_spent DESC
+                LIMIT 10");
+            $stmt->execute([
+                'date_start' => $filters['date_start'] . ' 00:00:00',
+                'date_end' => $filters['date_end'] . ' 23:59:59'
+            ]);
+            $report_data['top_customers'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'financial_summary':
+            // Financial summary
+            $stmt = $db->prepare("SELECT 
+                SUM(s.total_amount) as total_revenue,
+                SUM(s.tax_amount) as total_tax,
+                SUM(s.discount_amount) as total_discount,
+                COUNT(s.id) as total_transactions,
+                SUM(CASE WHEN s.payment_type = 'cash' THEN s.total_amount ELSE 0 END) as cash_payments,
+                SUM(CASE WHEN s.payment_type = 'card' THEN s.total_amount ELSE 0 END) as card_payments,
+                SUM(CASE WHEN s.payment_type = 'mobile_money' THEN s.total_amount ELSE 0 END) as mobile_payments
+                FROM sales s
+                WHERE s.date BETWEEN :date_start AND :date_end");
+            $stmt->execute([
+                'date_start' => $filters['date_start'] . ' 00:00:00',
+                'date_end' => $filters['date_end'] . ' 23:59:59'
+            ]);
+            $report_data['summary'] = $stmt->fetch(PDO::FETCH_ASSOC);
+            break;
     }
 } catch (PDOException $e) {
     $error_message = 'Database error: ' . $e->getMessage();
-    error_log('Database error in reports.php: ' . $e->getMessage());
-} catch (Exception $e) {
-    $error_message = 'An error occurred: ' . $e->getMessage();
-    error_log('Error in reports.php: ' . $e->getMessage());
 }
 
-/**
- * Get report data with comprehensive filtering
- */
-function getReportData($db, $report_type, $filters = []) {
-    $query = "";
-    $params = [];
-    $where_conditions = [];
-
-    // Set default date range
-    $start_date = $filters['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-    $end_date = $filters['end_date'] ?? date('Y-m-d');
-
-    // Common where conditions for document-based reports
-    if (!empty($start_date)) {
-        $where_conditions[] = "d.document_date >= ?";
-        $params[] = $start_date . ' 00:00:00';
-    }
-    if (!empty($end_date)) {
-        $where_conditions[] = "d.document_date <= ?";
-        $params[] = $end_date . ' 23:59:59';
-    }
-    if (!empty($filters['user_id'])) {
-        $where_conditions[] = "d.user_id = ?";
-        $params[] = $filters['user_id'];
-    }
-    if (!empty($filters['customer_id'])) {
-        $where_conditions[] = "d.customer_id = ?";
-        $params[] = $filters['customer_id'];
-    }
-    if (!empty($filters['product_id'])) {
-        $where_conditions[] = "di.product_id = ?";
-        $params[] = $filters['product_id'];
-    }
-    if (!empty($filters['category_id'])) {
-        $where_conditions[] = "p.category_id = ?";
-        $params[] = $filters['category_id'];
-    }
-
-    $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
-    $where_clause .= " AND d.document_type IN ('invoice', 'receipt')";
-
-    switch ($report_type) {
-        case 'sales_summary':
-            $query = "SELECT 
-                DATE(d.document_date) as sale_date,
-                COUNT(DISTINCT d.id) as total_orders,
-                COUNT(DISTINCT d.customer_id) as unique_customers,
-                SUM(di.price * di.quantity) as subtotal,
-                SUM(di.tax) as tax_amount,
-                SUM(di.discount) as discount_amount,
-                SUM(di.total) as total_amount,
-                SUM(di.quantity * p.cost) as total_cost,
-                (SUM(di.total) - SUM(di.quantity * p.cost)) as gross_profit,
-                ROUND(((SUM(di.total) - SUM(di.quantity * p.cost)) / 
-                       NULLIF(SUM(di.total), 0)) * 100, 2) as profit_margin
-                FROM documents d
-                LEFT JOIN document_items di ON d.id = di.document_id
-                LEFT JOIN products p ON di.product_id = p.id
-                $where_clause
-                GROUP BY DATE(d.document_date)
-                ORDER BY sale_date DESC";
-            break;
-
-        case 'product_sales':
-            $query = "SELECT 
-                p.id as product_id,
-                p.name as product_name,
-                p.code as sku,
-                c.name as category_name,
-                COUNT(DISTINCT d.id) as order_count,
-                SUM(di.quantity) as total_quantity,
-                SUM(di.price * di.quantity) as subtotal,
-                SUM(di.tax) as tax_amount,
-                SUM(di.discount) as discount_amount,
-                SUM(di.total) as total_amount,
-                SUM(di.quantity * p.cost) as total_cost,
-                (SUM(di.total) - SUM(di.quantity * p.cost)) as gross_profit,
-                ROUND(((SUM(di.total) - SUM(di.quantity * p.cost)) / 
-                       NULLIF(SUM(di.total), 0)) * 100, 2) as profit_margin
-                FROM products p
-                LEFT JOIN categories c ON p.category_id = c.id
-                LEFT JOIN document_items di ON p.id = di.product_id
-                LEFT JOIN documents d ON di.document_id = d.id
-                $where_clause
-                GROUP BY p.id, p.name, p.code, c.name
-                HAVING total_quantity > 0
-                ORDER BY total_amount DESC";
-            break;
-
-        case 'customer_orders':
-            $query = "SELECT 
-                c.id as customer_id,
-                c.name as customer_name,
-                c.email,
-                c.phone,
-                COUNT(DISTINCT d.id) as total_orders,
-                SUM(di.total) as total_spent,
-                AVG(di.total) as avg_order_value,
-                MAX(d.document_date) as last_order_date,
-                DATEDIFF(NOW(), MAX(d.document_date)) as days_since_last_order
-                FROM customers c
-                LEFT JOIN documents d ON c.id = d.customer_id
-                LEFT JOIN document_items di ON d.id = di.document_id
-                WHERE d.document_type IN ('invoice', 'receipt')
-                " . (!empty($where_conditions) ? ' AND ' . implode(' AND ', $where_conditions) : '') . "
-                GROUP BY c.id, c.name, c.email, c.phone
-                HAVING total_orders > 0
-                ORDER BY total_spent DESC";
-            break;
-
-        case 'inventory_summary':
-            $query = "SELECT 
-                p.id as product_id,
-                p.code as sku,
-                p.name as product_name,
-                c.name as category_name,
-                p.stock_quantity as current_stock,
-                p.min_stock as reorder_level,
-                p.price as selling_price,
-                p.cost as cost_price,
-                (p.price - p.cost) as profit_per_unit,
-                ROUND(((p.price - p.cost) / NULLIF(p.cost, 0)) * 100, 2) as profit_margin,
-                (p.stock_quantity * p.price) as stock_value,
-                (SELECT COUNT(*) FROM document_items di 
-                 JOIN documents d ON di.document_id = d.id 
-                 WHERE di.product_id = p.id 
-                 AND d.document_date BETWEEN ? AND ?) as times_sold
-                FROM products p
-                LEFT JOIN categories c ON p.category_id = c.id
-                WHERE p.active = 1
-                ORDER BY p.name";
-            $params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59'];
-            break;
-
-        case 'tax_summary':
-            $query = "SELECT 
-                t.id as tax_id,
-                t.name as tax_name,
-                t.rate as tax_rate,
-                COUNT(DISTINCT d.id) as transaction_count,
-                SUM(di.quantity) as items_sold,
-                SUM(di.tax) as total_tax_collected,
-                SUM(di.price * di.quantity) as taxable_amount
-                FROM tax_rates t
-                LEFT JOIN document_items di ON t.id = di.tax_rate_id
-                LEFT JOIN documents d ON di.document_id = d.id
-                $where_clause
-                GROUP BY t.id, t.name, t.rate
-                ORDER BY total_tax_collected DESC";
-            break;
-
-        case 'user_performance':
-            $query = "SELECT 
-                u.id as user_id,
-                u.username,
-                u.name as full_name,
-                COUNT(DISTINCT d.id) as total_orders,
-                COUNT(DISTINCT d.customer_id) as unique_customers,
-                SUM(di.total) as total_sales,
-                AVG(di.total) as avg_order_value,
-                SUM(di.quantity) as items_sold,
-                (SELECT COUNT(*) FROM documents WHERE user_id = u.id AND DATE(document_date) = CURDATE() AND document_type IN ('invoice', 'receipt')) as today_orders,
-                (SELECT COALESCE(SUM(total), 0) FROM documents WHERE user_id = u.id AND DATE(document_date) = CURDATE() AND document_type IN ('invoice', 'receipt')) as today_sales
-                FROM users u
-                LEFT JOIN documents d ON u.id = d.user_id
-                LEFT JOIN document_items di ON d.id = di.document_id
-                WHERE u.active = 1 
-                AND d.document_type IN ('invoice', 'receipt')
-                " . (!empty($where_conditions) ? ' AND ' . implode(' AND ', $where_conditions) : '') . "
-                GROUP BY u.id, u.username, u.name
-                ORDER BY total_sales DESC";
-            break;
-
-        default:
-            throw new Exception("Invalid report type specified");
-    }
-
-    try {
-        $stmt = $db->prepare($query);
-        $stmt->execute($params);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $summary = [
-            'start_date' => $start_date,
-            'end_date' => $end_date,
-            'report_type' => $report_type,
-            'record_count' => count($results),
-            'generated_at' => date('Y-m-d H:i:s'),
-            'filters' => $filters
-        ];
-
-        return [
-            'success' => true,
-            'data' => $results,
-            'summary' => $summary,
-            'query' => $query,
-            'params' => $params
-        ];
-    } catch (PDOException $e) {
-        error_log("Report generation error: " . $e->getMessage());
-        return [
-            'success' => false,
-            'message' => 'Error generating report: ' . $e->getMessage(),
-            'query' => $query,
-            'params' => $params
-        ];
-    }
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -448,1157 +178,825 @@ function getReportData($db, $report_type, $filters = []) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports - MTECH UGANDA</title>
+    <title>Reports - <?php echo SITE_NAME; ?></title>
+    <link rel="shortcut icon" href="../assets/images/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <style>
         :root {
-            --primary-color: #4e73df;
-            --primary-hover: #3a5bc7;
-            --secondary-color: #6c757d;
-            --success-color: #1cc88a;
-            --info-color: #36b9cc;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --light-color: #f8f9fc;
-            --dark-color: #5a5c69;
-            
-            /* Sidebar variables */
-            --sidebar-bg: #1a1a2e;
-            --sidebar-header: #0f3460;
-            --sidebar-active: #16213e;
-            --sidebar-hover: #0f3460;
-            --sidebar-text: rgba(255, 255, 255, 0.85);
-            --sidebar-text-hover: #ffffff;
-            --sidebar-section: rgba(255, 255, 255, 0.1);
-            --sidebar-width: 280px;
-            --transition-speed: 0.3s;
-            --accent-color: #4e73df;
+            --primary: #4361ee;
+            --primary-light: #e6e9ff;
+            --secondary: #6c757d;
+            --dark: #1a237e;
         }
 
         body {
-            background-color: #f5f7fa;
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            color: #333;
-            display: flex;
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f7fb;
             min-height: 100vh;
-            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
         }
 
         .app-container {
             display: flex;
-            width: 100%;
-            position: relative;
-        }
-
-        /* Enhanced Sidebar Styles */
-        .sidebar {
-            width: var(--sidebar-width);
             min-height: 100vh;
-            background: var(--sidebar-bg);
-            color: var(--sidebar-text);
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 100;
-            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
-            transition: all var(--transition-speed) ease;
-            overflow-y: auto;
         }
 
-        .sidebar-header {
-            padding: 1.5rem 1.5rem 1.2rem;
-            background: var(--sidebar-header);
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .sidebar {
+            width: 280px;
+            background: rgba(26, 35, 126, 0.9);
+            backdrop-filter: blur(10px);
+            color: #fff;
+            position: fixed;
+            height: 100vh;
+            transition: transform 0.3s ease;
+            z-index: 1000;
         }
 
         .sidebar-header h2 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: white;
-            margin: 0;
-            letter-spacing: 0.5px;
-            background: linear-gradient(90deg, #ffffff, #a0c4ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: inline-block;
-        }
-
-        .sidebar-header .logo-icon {
-            font-size: 1.8rem;
-            margin-right: 12px;
-            color: var(--accent-color);
-        }
-
-        .sidebar-menu {
-            padding: 1.5rem 0;
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .menu-section {
-            margin-bottom: 1.5rem;
+            padding: 0.5rem 0;
         }
 
         .menu-section-title {
-            padding: 0.6rem 1.5rem;
-            font-size: 0.85rem;
+            padding: 0.5rem 1.5rem;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 0.5rem;
-            position: relative;
-        }
-
-        .menu-section-title:after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 1.5rem;
-            right: 1.5rem;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
         }
 
         .menu-item {
             display: flex;
             align-items: center;
-            padding: 0.9rem 1.5rem;
-            margin: 0.25rem 1rem;
-            color: var(--sidebar-text);
+            padding: 0.75rem 1.5rem;
+            color: rgba(255, 255, 255, 0.9);
             text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .menu-item:hover {
-            background: var(--sidebar-hover);
-            color: var(--sidebar-text-hover);
-            transform: translateX(5px);
+            transition: background 0.2s;
         }
 
         .menu-item.active {
-            background: var(--sidebar-active);
-            color: white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: rgba(67, 97, 238, 0.2);
+            color: #fff;
+            font-weight: 500;
         }
 
-        .menu-item.active:before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 4px;
-            background: var(--accent-color);
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
-        .menu-item i {
-            width: 24px;
-            font-size: 1.1rem;
-            margin-right: 14px;
-            text-align: center;
-            transition: all 0.2s ease;
-        }
-
-        .menu-item.active i {
-            color: var(--accent-color);
-            transform: scale(1.1);
-        }
-
-        .menu-item .notification-badge {
-            background: var(--success-color);
-            color: white;
-            font-size: 0.7rem;
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: auto;
-            font-weight: 600;
-        }
-
-        /* Main Content */
         .main-content {
-            flex: 1;
+            margin-left: 280px;
             padding: 2rem;
-            margin-left: var(--sidebar-width);
-            transition: margin-left var(--transition-speed) ease;
-            width: calc(100% - var(--sidebar-width));
+            width: calc(100% - 280px);
+            transition: margin-left 0.3s ease;
+        }
+
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 280px;
+            right: 0;
+            height: 70px;
+            background: #fff;
+            box-shadow: 0 1px 15px rgba(0, 0, 0, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 900;
         }
 
         .card {
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            margin-bottom: 1.5rem;
             border: none;
-            transition: all 0.3s ease;
+            border-radius: 10px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.03);
+            margin-bottom: 1.5rem;
+            background-color: #fff;
+            margin-top: 70px;
         }
 
-        .card:hover {
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            transform: translateY(-5px);
+        .stat-card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 1rem;
+            transition: box-shadow 0.3s;
         }
 
-        .card-header {
-            background-color: white;
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            border-radius: 10px 10px 0 0 !important;
-            font-weight: 600;
+        .stat-card:hover {
+            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+        }
+
+        .icon-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-        }
-
-        .card-body {
-            padding: 1.5rem;
-        }
-
-        .page-header {
-            margin-bottom: 2rem;
-        }
-
-        .filter-group {
-            background-color: #f8f9fc;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .filter-group h6 {
-            color: var(--primary-color);
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-
-        .summary-card {
-            height: 100%;
-            border-left: 4px solid var(--primary-color);
-            transition: all 0.3s ease;
-        }
-
-        .summary-card:hover {
-            border-left-width: 6px;
-        }
-
-        .summary-card .card-title {
-            color: var(--secondary-color);
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-
-        .summary-card .card-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--dark-color);
-        }
-
-        .report-card {
-            cursor: pointer;
-            transition: all 0.2s ease;
-            height: 100%;
-        }
-
-        .report-card:hover {
-            background-color: #f0f5ff;
-            border-color: var(--primary-color);
-        }
-
-        .report-card.active {
-            background-color: #e6f0ff;
-            border-color: var(--primary-color);
-        }
-
-        .report-card .card-icon {
-            font-size: 2rem;
-            color: var(--primary-color);
-            margin-bottom: 15px;
-        }
-
-        .active-filter-badge {
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 20px;
-            padding: 2px 8px;
-            font-size: 0.75rem;
-            margin-left: 5px;
+            justify-content: center;
+            font-size: 1.2rem;
         }
 
         .loading-overlay {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
             align-items: center;
-            z-index: 9999;
-            visibility: hidden;
-            opacity: 0;
-            transition: all 0.3s;
-            backdrop-filter: blur(4px);
-        }
-
-        .loading-overlay.show {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        .loading-spinner {
-            border: 4px solid rgba(78, 115, 223, 0.1);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .export-options {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            justify-content: center;
         }
 
         @media (max-width: 992px) {
             .sidebar {
                 transform: translateX(-100%);
-                z-index: 1050;
             }
-            
             .sidebar.active {
                 transform: translateX(0);
             }
-            
             .main-content {
                 margin-left: 0;
                 width: 100%;
             }
-            
-            .card-header {
-                flex-direction: column;
-                align-items: flex-start;
+            .top-nav {
+                left: 0;
             }
-            
-            .export-options {
-                margin-top: 15px;
-                width: 100%;
-            }
-            
-            .filter-group {
-                padding: 12px;
-            }
-            
-            .menu-toggle {
-                display: block;
-                position: fixed;
-                top: 15px;
-                left: 15px;
-                z-index: 1100;
-                background: var(--accent-color);
-                color: white;
-                border: none;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                font-size: 1.2rem;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            }
-        }
-
-        /* Animation for sidebar menu items */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .menu-item {
-            animation: fadeIn 0.3s ease forwards;
-            opacity: 0;
-        }
-
-        .menu-item:nth-child(1) { animation-delay: 0.1s; }
-        .menu-item:nth-child(2) { animation-delay: 0.15s; }
-        .menu-item:nth-child(3) { animation-delay: 0.2s; }
-        .menu-item:nth-child(4) { animation-delay: 0.25s; }
-        .menu-item:nth-child(5) { animation-delay: 0.3s; }
-        .menu-item:nth-child(6) { animation-delay: 0.35s; }
-        .menu-item:nth-child(7) { animation-delay: 0.4s; }
-        .menu-item:nth-child(8) { animation-delay: 0.45s; }
-        .menu-item:nth-child(9) { animation-delay: 0.5s; }
-        .menu-item:nth-child(10) { animation-delay: 0.55s; }
-        .menu-item:nth-child(11) { animation-delay: 0.6s; }
-        .menu-item:nth-child(12) { animation-delay: 0.65s; }
-        .menu-item:nth-child(13) { animation-delay: 0.7s; }
-        .menu-item:nth-child(14) { animation-delay: 0.75s; }
-        .menu-item:nth-child(15) { animation-delay: 0.8s; }
-
-        /* Custom scrollbar for sidebar */
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .menu-toggle {
-            display: none;
         }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Enhanced Sidebar Navigation -->
-        <div class="sidebar">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <i class="fas fa-chart-line logo-icon"></i>
                 <h2>MTECH UGANDA</h2>
             </div>
-            
-            <div class="sidebar-menu">
-                <div class="menu-section">
-                    <div class="menu-section-title">Main Navigation</div>
-                    <a href="dashboard.php" class="menu-item">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="documents.php" class="menu-item">
-                        <i class="fas fa-file-invoice"></i>
-                        <span>Documents</span>
-                    </a>
-                    <a href="products.php" class="menu-item">
-                        <i class="fas fa-box"></i>
-                        <span>Products</span>
-                    </a>
-                    <a href="price-lists.php" class="menu-item">
-                        <i class="fas fa-tags"></i>
-                        <span>Price Lists</span>
-                    </a>
-                </div>
-                
-                <div class="menu-section">
-                    <div class="menu-section-title">Inventory</div>
-                    <a href="stock.php" class="menu-item">
-                        <i class="fas fa-warehouse"></i>
-                        <span>Stock</span>
-                    </a>
-                    <a href="reports.php" class="menu-item active">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Reporting</span>
-                        <span class="notification-badge">New</span>
-                    </a>
-                </div>
-                
-                <div class="menu-section">
-                    <div class="menu-section-title">Customers</div>
-                    <a href="customers-suppliers.php" class="menu-item">
-                        <i class="fas fa-users"></i>
-                        <span>Customers & Suppliers</span>
-                    </a>
-                    <a href="promotions.php" class="menu-item">
-                        <i class="fas fa-percent"></i>
-                        <span>Promotions</span>
-                    </a>
-                </div>
-                
-                <div class="menu-section">
-                    <div class="menu-section-title">Settings</div>
-                    <a href="security.php" class="menu-item">
-                        <i class="fas fa-users-cog"></i>
-                        <span>Users & Security</span>
-                    </a>
-                    <a href="print-stations.php" class="menu-item">
-                        <i class="fas fa-print"></i>
-                        <span>Print Stations</span>
-                    </a>
-                    <a href="payment-types.php" class="menu-item">
-                        <i class="fas fa-credit-card"></i>
-                        <span>Payment Types</span>
-                    </a>
-                    <a href="countries.php" class="menu-item">
-                        <i class="fas fa-globe"></i>
-                        <span>Countries</span>
-                    </a>
-                    <a href="tax-rates.php" class="menu-item">
-                        <i class="fas fa-percentage"></i>
-                        <span>Tax Rates</span>
-                    </a>
-                    <a href="company.php" class="menu-item">
-                        <i class="fas fa-building"></i>
-                        <span>My Company</span>
-                    </a>
-                </div>
+            <div class="menu-section">
+                <div class="menu-section-title">Main Navigation</div>
+                <a href="dashboard.php" class="menu-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="documents.php" class="menu-item"><i class="fas fa-file-invoice"></i> Documents</a>
+                <a href="products.php" class="menu-item"><i class="fas fa-box"></i> Products</a>
+                <a href="price-lists.php" class="menu-item"><i class="fas fa-tags"></i> Price Lists</a>
             </div>
-        </div>
-        
+            <div class="menu-section">
+                <div class="menu-section-title">Inventory</div>
+                <a href="stock.php" class="menu-item"><i class="fas fa-warehouse"></i> Stock</a>
+                <a href="reports.php" class="menu-item active"><i class="fas fa-chart-bar"></i> Reporting</a>
+            </div>
+            <div class="menu-section">
+                <div class="menu-section-title">Customers</div>
+                <a href="customers-suppliers.php" class="menu-item"><i class="fas fa-users"></i> Customers & Suppliers</a>
+                <a href="promotions.php" class="menu-item"><i class="fas fa-percent"></i> Promotions</a>
+            </div>
+            <?php if (in_array($user_role, ['admin', 'manager'])): ?>
+            <div class="menu-section">
+                <div class="menu-section-title">Settings</div>
+                <a href="security.php" class="menu-item"><i class="fas fa-users-cog"></i> Users & Security</a>
+                <a href="print-stations.php" class="menu-item"><i class="fas fa-print"></i> Print Stations</a>
+                <a href="payment-types.php" class="menu-item"><i class="fas fa-credit-card"></i> Payment Types</a>
+                <a href="countries.php" class="menu-item"><i class="fas fa-globe"></i> Countries</a>
+                <a href="tax-rates.php" class="menu-item"><i class="fas fa-percentage"></i> Tax Rates</a>
+                <a href="company.php" class="menu-item"><i class="fas fa-building"></i> My Company</a>
+            </div>
+            <?php endif; ?>
+        </aside>
+
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Page Header -->
-            <div class="page-header">
-                <div>
-                    <h1 class="h3 mb-2"><i class="bi bi-bar-chart me-2"></i>Reports Dashboard</h1>
-                    <p class="text-muted">Analyze and export business performance data</p>
-                </div>
-                <button class="btn btn-primary menu-toggle d-lg-none">
+            <nav class="top-nav">
+                <button class="btn btn-link d-md-none" id="sidebarToggle">
                     <i class="fas fa-bars"></i>
                 </button>
-            </div>
+                <h1 class="page-title">Reports</h1>
+                <div class="user-menu">
+                    <span class="user-name"><?php echo htmlspecialchars($user_fullname); ?></span>
+                    <div class="user-avatar"><?php echo strtoupper(substr($user_fullname, 0, 1)); ?></div>
+                </div>
+            </nav>
 
-            <!-- Filters Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Report Filters</h5>
-                    <div class="export-options">
-                        <button class="btn btn-sm btn-outline-primary" id="toggleFilters">
-                            <i class="bi bi-chevron-up me-1"></i>Collapse
-                        </button>
+            <!-- Alerts -->
+            <?php if (!empty($success_message)): ?>
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                    <?php echo htmlspecialchars($success_message); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($error_message)): ?>
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                    <?php echo htmlspecialchars($error_message); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <!-- Report Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form method="post" action="">
+                                <input type="hidden" name="_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                                <input type="hidden" name="action" value="apply_filters">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label for="report_type" class="form-label">Report Type</label>
+                                        <select class="form-select" id="report_type" name="report_type" required>
+                                            <option value="sales_summary" <?php echo $filters['report_type'] === 'sales_summary' ? 'selected' : ''; ?>>Sales Summary</option>
+                                            <option value="inventory_movements" <?php echo $filters['report_type'] === 'inventory_movements' ? 'selected' : ''; ?>>Inventory Movements</option>
+                                            <option value="customer_activity" <?php echo $filters['report_type'] === 'customer_activity' ? 'selected' : ''; ?>>Customer Activity</option>
+                                            <option value="financial_summary" <?php echo $filters['report_type'] === 'financial_summary' ? 'selected' : ''; ?>>Financial Summary</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="date_start" class="form-label">Start Date</label>
+                                        <input type="date" class="form-control" id="date_start" name="date_start" value="<?php echo $filters['date_start']; ?>" required>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="date_end" class="form-label">End Date</label>
+                                        <input type="date" class="form-control" id="date_end" name="date_end" value="<?php echo $filters['date_end']; ?>" required>
+                                    </div>
+                                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-filter me-2"></i>Apply Filters
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body" id="filtersBody">
-                    <form id="reportForm" class="mb-4">
-                        <div class="row">
-                            <!-- Report Type -->
-                            <div class="col-md-6 mb-4">
-                                <div class="filter-group">
-                                    <h6>Report Type</h6>
-                                    <select class="form-select" id="report_type" name="report_type" required>
-                                        <option value="">-- Select Report Type --</option>
-                                        <optgroup label="Sales Reports">
-                                            <option value="sales_summary" <?php echo $report_type === 'sales_summary' ? 'selected' : ''; ?>>Sales Summary</option>
-                                            <option value="product_sales" <?php echo $report_type === 'product_sales' ? 'selected' : ''; ?>>Product Sales</option>
-                                            <option value="customer_orders" <?php echo $report_type === 'customer_orders' ? 'selected' : ''; ?>>Customer Orders</option>
-                                        </optgroup>
-                                        <optgroup label="Inventory Reports">
-                                            <option value="inventory_summary" <?php echo $report_type === 'inventory_summary' ? 'selected' : ''; ?>>Inventory Summary</option>
-                                            <option value="low_stock" <?php echo $report_type === 'low_stock' ? 'selected' : ''; ?>>Low Stock Alerts</option>
-                                        </optgroup>
-                                        <optgroup label="Financial Reports">
-                                            <option value="tax_summary" <?php echo $report_type === 'tax_summary' ? 'selected' : ''; ?>>Tax Summary</option>
-                                            <option value="profits" <?php echo $report_type === 'profits' ? 'selected' : ''; ?>>Profit Analysis</option>
-                                        </optgroup>
-                                        <optgroup label="User Reports">
-                                            <option value="user_performance" <?php echo $report_type === 'user_performance' ? 'selected' : ''; ?>>User Performance</option>
-                                        </optgroup>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <!-- Date Range -->
-                            <div class="col-md-6 mb-4">
-                                <div class="filter-group">
-                                    <h6>Date Range <span class="active-filter-badge">Last 30 Days</span></h6>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="bi bi-calendar"></i></span>
-                                        <input type="text" class="form-control" id="date_range" name="date_range" value="<?php echo date('Y-m-d', strtotime($start_date)) . ' - ' . date('Y-m-d', strtotime($end_date)); ?>">
+            </div>
+
+            <!-- Report Summary Cards -->
+            <div class="row mb-4">
+                <?php if ($filters['report_type'] === 'sales_summary' && !empty($report_data['summary'])): ?>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Total Sales</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo number_format($report_data['summary']['total_sales']); ?></h2>
                                     </div>
-                                    <input type="hidden" name="start_date" id="start_date" value="<?php echo $start_date; ?>">
-                                    <input type="hidden" name="end_date" id="end_date" value="<?php echo $end_date; ?>">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <!-- Additional Filters -->
-                            <div class="col-md-4 mb-4">
-                                <div class="filter-group">
-                                    <h6>User</h6>
-                                    <select class="form-select" id="filter_user" name="user_id">
-                                        <option value="">All Users</option>
-                                        <?php foreach ($users as $user): ?>
-                                            <option value="<?php echo $user['id']; ?>" <?php echo ($user_id ?? '') == $user['id'] ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($user['full_name'] . ' (' . $user['role'] . ')'); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                
-                                <div class="filter-group">
-                                    <h6>Category</h6>
-                                    <select class="form-select" id="filter_category" name="category_id">
-                                        <option value="">All Categories</option>
-                                        <?php 
-                                        // Build category tree for the dropdown
-                                        $categories_tree = [];
-                                        foreach ($categories as $category) {
-                                            $parent_id = $category['parent_id'] ?? 0;
-                                            if (!isset($categories_tree[$parent_id])) {
-                                                $categories_tree[$parent_id] = [];
-                                            }
-                                            $categories_tree[$parent_id][] = $category;
-                                        }
-                                        echo buildCategoryTree(0, $categories_tree, 0, $category_id ?? null);
-                                        ?>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4 mb-4">
-                                <div class="filter-group">
-                                    <h6>Customer</h6>
-                                    <select class="form-select" id="filter_customer" name="customer_id">
-                                        <option value="">All Customers</option>
-                                        <?php 
-                                        foreach ($customers as $customer): 
-                                            $customerName = htmlspecialchars($customer['name'] ?? '');
-                                            $companyName = !empty($customer['company_name']) ? ' (' . htmlspecialchars($customer['company_name']) . ')' : '';
-                                        ?>
-                                            <option value="<?php echo $customer['id']; ?>" <?php echo (isset($customer_id) && $customer_id == $customer['id']) ? 'selected' : ''; ?>>
-                                                <?php echo $customerName . $companyName; ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                
-                                <div class="filter-group">
-                                    <h6>Payment Method</h6>
-                                    <select class="form-select" id="filter_payment_method" name="payment_method">
-                                        <option value="">All Methods</option>
-                                        <option value="cash" <?php echo ($_REQUEST['payment_method'] ?? '') === 'cash' ? 'selected' : ''; ?>>Cash</option>
-                                        <option value="credit_card" <?php echo ($_REQUEST['payment_method'] ?? '') === 'credit_card' ? 'selected' : ''; ?>>Credit Card</option>
-                                        <option value="mobile_money" <?php echo ($_REQUEST['payment_method'] ?? '') === 'mobile_money' ? 'selected' : ''; ?>>Mobile Money</option>
-                                        <option value="bank_transfer" <?php echo ($_REQUEST['payment_method'] ?? '') === 'bank_transfer' ? 'selected' : ''; ?>>Bank Transfer</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4 mb-4">
-                                <div class="filter-group">
-                                    <h6>Location</h6>
-                                    <input type="text" class="form-control" id="filter_location" name="location" placeholder="Location" value="<?php echo htmlspecialchars($_REQUEST['location'] ?? ''); ?>">
-                                </div>
-                                
-                                <div class="filter-group">
-                                    <h6>Additional Options</h6>
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="include_subgroups" name="include_subgroups" value="1" checked>
-                                        <label class="form-check-label" for="include_subgroups">Include subcategories</label>
+                                    <div class="icon-circle bg-primary text-white">
+                                        <i class="fas fa-shopping-cart"></i>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-end gap-2 mt-3">
-                            <button type="button" class="btn btn-outline-secondary" id="resetFilters">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Filters
-                            </button>
-                            <button type="submit" class="btn btn-primary" id="generateReport">
-                                <i class="bi bi-lightning-charge me-1"></i>Generate Report
-                            </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Total Revenue</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo 'UGX ' . number_format($report_data['summary']['total_revenue'], 2); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-success text-white">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Total Tax</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo 'UGX ' . number_format($report_data['summary']['total_tax'], 2); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-info text-white">
+                                        <i class="fas fa-percentage"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Unique Customers</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo number_format($report_data['summary']['unique_customers']); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-warning text-dark">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($filters['report_type'] === 'inventory_movements' && !empty($report_data['summary'])): ?>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Stock In</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo number_format($report_data['summary']['total_in']); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-success text-white">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Stock Out</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo number_format($report_data['summary']['total_out']); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-danger text-white">
+                                        <i class="fas fa-arrow-down"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Adjustments</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo number_format($report_data['summary']['total_adjustments']); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-warning text-dark">
+                                        <i class="fas fa-adjust"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Products Affected</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo number_format($report_data['summary']['products_affected']); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-info text-white">
+                                        <i class="fas fa-boxes"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($filters['report_type'] === 'financial_summary' && !empty($report_data['summary'])): ?>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Total Revenue</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo 'UGX ' . number_format($report_data['summary']['total_revenue'], 2); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-success text-white">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Total Transactions</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo number_format($report_data['summary']['total_transactions']); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-primary text-white">
+                                        <i class="fas fa-receipt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Cash Payments</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo 'UGX ' . number_format($report_data['summary']['cash_payments'], 2); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-info text-white">
+                                        <i class="fas fa-money-bill-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-uppercase text-muted mb-0">Mobile Payments</h6>
+                                        <h2 class="mb-0 mt-2"><?php echo 'UGX ' . number_format($report_data['summary']['mobile_payments'], 2); ?></h2>
+                                    </div>
+                                    <div class="icon-circle bg-warning text-dark">
+                                        <i class="fas fa-mobile-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
-            
-            <!-- Summary Cards -->
-            <div class="row g-4 mb-4">
-                <!-- Total Sales Card -->
-                <div class="col-xl-3 col-md-6">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted text-uppercase small">Total Sales</span>
-                                    <h2 class="mt-2 mb-1">UGX <?php echo number_format($total_sales ?? 0, 0); ?></h2>
-                                    <small class="text-muted">
-                                        <i class="bi bi-calendar3 me-1"></i>
-                                        <?php echo date('M j', strtotime($start_date)) . ' - ' . date('M j, Y', strtotime($end_date)); ?>
-                                    </small>
-                                </div>
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-currency-dollar fs-4 text-primary"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Total Orders Card -->
-                <div class="col-xl-3 col-md-6">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted text-uppercase small">Total Orders</span>
-                                    <h2 class="mt-2 mb-1"><?php echo number_format($total_orders ?? 0); ?></h2>
-                                    <small class="text-muted">
-                                        <i class="bi bi-arrow-up text-success me-1"></i>
-                                        <span class="text-success">0%</span> from last month
-                                    </small>
-                                </div>
-                                <div class="bg-success bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-cart-check fs-4 text-success"></i>
-                                </div>
+            <!-- Report Details -->
+            <div class="row">
+                <?php if ($filters['report_type'] === 'sales_summary'): ?>
+                    <!-- Top Selling Products -->
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold">Top Selling Products</h6>
+                                <span class="badge bg-primary"><?php echo count($report_data['top_products']); ?> items</span>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Customers Card -->
-                <div class="col-xl-3 col-md-6">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted text-uppercase small">Total Customers</span>
-                                    <h2 class="mt-2 mb-1"><?php echo number_format($unique_customers ?? 0); ?></h2>
-                                    <small class="text-muted">
-                                        <i class="bi bi-arrow-up text-success me-1"></i>
-                                        <span class="text-success">0%</span> repeat rate
-                                    </small>
-                                </div>
-                                <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-people fs-4 text-warning"></i>
-                                </div>
+                            <div class="card-body p-0">
+                                <?php if (!empty($report_data['top_products'])): ?>
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Code</th>
+                                                <th>Quantity</th>
+                                                <th>TotalSales</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($report_data['top_products'] as $product): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($product['name']); ?></td>
+                                                    <td><?php echo htmlspecialchars($product['code']); ?></td>
+                                                    <td><?php echo number_format($product['total_quantity']); ?></td>
+                                                    <td><?php echo 'UGX ' . number_format($product['total_sales'], 2); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                <?php else: ?>
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                                        <p class="mb-0">No sales data available</p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Average Order Value Card -->
-                <div class="col-xl-3 col-md-6">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted text-uppercase small">Avg. Order</span>
-                                    <h2 class="mt-2 mb-1">UGX <?php echo number_format($avg_order ?? 0, 0); ?></h2>
-                                    <small class="text-muted">
-                                        <i class="bi bi-graph-up me-1"></i>
-                                        <?php echo ($total_orders ?? 0) . ' orders' ?>
-                                    </small>
-                                </div>
-                                <div class="bg-danger bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-graph-up fs-4 text-danger"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Report Results Section -->
-            <div class="card border-0 shadow-sm mt-4">
-                <div class="card-header bg-white border-bottom-0 py-3">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-                        <h5 class="mb-2 mb-md-0">
-                            <i class="bi bi-table me-2"></i>Report Results: 
-                            <span class="text-primary">
-                                <?php 
-                                $report_titles = [
-                                    'sales_summary' => 'Sales Summary',
-                                    'product_sales' => 'Product Sales',
-                                    'customer_orders' => 'Customer Orders',
-                                    'inventory_summary' => 'Inventory Summary',
-                                    'tax_summary' => 'Tax Summary',
-                                    'user_performance' => 'User Performance',
-                                    'profits' => 'Profit Analysis'
-                                ];
-                                echo $report_titles[$report_type] ?? 'Report';
-                                ?>
-                            </span>
-                            <small class="text-muted ms-2">
-                                (<?php echo date('M j', strtotime($start_date)) . ' - ' . date('M j, Y', strtotime($end_date)); ?>)
-                            </small>
-                        </h5>
-                        <div class="d-flex gap-2 mt-2 mt-md-0">
-                            <button class="btn btn-sm btn-outline-primary" id="printReport">
-                                <i class="bi bi-printer me-1"></i>Print
-                            </button>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-download me-1"></i>Export
+                            <div class="card-footer bg-white">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="modalDetailedReportModal" onclick="loadDetailedReport('top_products')">
+                                    View Detailed Report
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="#" id="exportExcel"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Excel</a></li>
-                                    <li><a class="dropdown-item" href="#" id="exportPdf"><i class="bi bi-file-earmark-pdf me-2"></i>PDF</a></li>
-                                    <li><a class="dropdown-item" href="#" id="exportCsv"><i class="bi bi-file-earmark-text me-2"></i>CSV</a></li>
-                                </ul>
                             </div>
                         </div>
                     </div>
-                </div>
-            <?php
-            // Get report data based on current filters
-            $report_data = [];
-            $report_summary = [];
-            
-            try {
-                $filters = [
-                    'start_date' => $start_date,
-                    'end_date' => $end_date,
-                    'user_id' => $_GET['user_id'] ?? null,
-                    'customer_id' => $_GET['customer_id'] ?? null,
-                    'product_id' => $_GET['product_id'] ?? null,
-                    'category_id' => $_GET['category_id'] ?? null
-                ];
-                
-                $report_result = getReportData($db, $report_type, $filters);
-                
-                if ($report_result['success']) {
-                    $report_data = $report_result['data'];
-                    $report_summary = $report_result['summary'];
-                    
-                    // Calculate summary statistics
-                    $total_sales = array_sum(array_column($report_data, 'total_amount'));
-                    $total_orders = array_sum(array_column($report_data, 'total_orders'));
-                    $unique_customers = count($report_data);
-                    $avg_order = $total_orders > 0 ? $total_sales / $total_orders : 0;
-                }
-            } catch (Exception $e) {
-                $error_message = 'Error generating report: ' . $e->getMessage();
-                error_log($error_message);
-            }
-            ?>
-            <div class="card-body p-0">
-                <?php if (!empty($error_message)): ?>
-                        <div class="alert alert-danger m-3">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            <?php echo htmlspecialchars($error_message); ?>
+
+                    <!-- Sales Trend Chart -->
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold">Sales Trend</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="salesTrendChart"></canvas>
+                            </div>
                         </div>
-                    <?php elseif (empty($report_data)): ?>
-                        <div class="alert alert-info m-3">
-                            <i class="bi bi-info-circle-fill me-2"></i>
-                            No data found for the selected criteria.
-                        </div>
-                    <?php else: ?>
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="reportTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <?php
-                                        // Define table headers based on report type
-                                        $headers = [];
-                                        $totals = [];
-                                        
-                                        switch ($report_type) {
-                                            case 'sales_summary':
-                                                $headers = [
-                                                    'Date' => 'sale_date',
-                                                    'Orders' => 'total_orders',
-                                                    'Customers' => 'unique_customers',
-                                                    'Subtotal' => 'subtotal',
-                                                    'Tax' => 'tax_amount',
-                                                    'Discount' => 'discount_amount',
-                                                    'Total' => 'total_amount',
-                                                    'Cost' => 'total_cost',
-                                                    'Profit' => 'gross_profit',
-                                                    'Margin' => 'profit_margin'
-                                                ];
-                                                break;
-                                                
-                                            case 'product_sales':
-                                                $headers = [
-                                                    'Product' => 'product_name',
-                                                    'SKU' => 'sku',
-                                                    'Category' => 'category_name',
-                                                    'Orders' => 'order_count',
-                                                    'Qty Sold' => 'total_quantity',
-                                                    'Subtotal' => 'subtotal',
-                                                    'Tax' => 'tax_amount',
-                                                    'Discount' => 'discount_amount',
-                                                    'Total' => 'total_amount',
-                                                    'Profit' => 'gross_profit',
-                                                    'Margin' => 'profit_margin'
-                                                ];
-                                                break;
-                                                
-                                            case 'customer_orders':
-                                                $headers = [
-                                                    'Customer' => 'customer_name',
-                                                    'Email' => 'email',
-                                                    'Phone' => 'phone',
-                                                    'Orders' => 'total_orders',
-                                                    'Total Spent' => 'total_spent',
-                                                    'Avg. Order' => 'avg_order_value',
-                                                    'Last Order' => 'last_order_date',
-                                                    'Days Since Last Order' => 'days_since_last_order'
-                                                ];
-                                                break;
-                                                
-                                            case 'inventory_summary':
-                                                $headers = [
-                                                    'Product' => 'product_name',
-                                                    'SKU' => 'sku',
-                                                    'Category' => 'category_name',
-                                                    'In Stock' => 'current_stock',
-                                                    'Reorder Level' => 'reorder_level',
-                                                    'Selling Price' => 'selling_price',
-                                                    'Cost Price' => 'cost_price',
-                                                    'Profit/Unit' => 'profit_per_unit',
-                                                    'Margin' => 'profit_margin',
-                                                    'Stock Value' => 'stock_value',
-                                                    'Times Sold' => 'times_sold'
-                                                ];
-                                                break;
-                                                
-                                            case 'tax_summary':
-                                                $headers = [
-                                                    'Tax Name' => 'tax_name',
-                                                    'Rate' => 'tax_rate',
-                                                    'Transactions' => 'transaction_count',
-                                                    'Items Sold' => 'items_sold',
-                                                    'Taxable Amount' => 'taxable_amount',
-                                                    'Tax Collected' => 'total_tax_collected'
-                                                ];
-                                                break;
-                                                
-                                            case 'user_performance':
-                                                $headers = [
-                                                    'User' => 'full_name',
-                                                    'Username' => 'username',
-                                                    'Orders' => 'total_orders',
-                                                    'Unique Customers' => 'unique_customers',
-                                                    'Total Sales' => 'total_sales',
-                                                    'Avg. Order' => 'avg_order_value',
-                                                    'Items Sold' => 'items_sold',
-                                                    'Today\'s Orders' => 'today_orders',
-                                                    'Today\'s Sales' => 'today_sales'
-                                                ];
-                                                break;
-                                        }
-                                        
-                                        // Output table headers
-                                        foreach ($headers as $label => $field) {
-                                            echo "<th>$label</th>";
-                                            // Initialize totals for numeric columns
-                                            if (in_array($field, ['total_orders', 'unique_customers', 'subtotal', 'tax_amount', 'discount_amount', 
-                                                               'total_amount', 'total_cost', 'gross_profit', 'total_quantity', 'order_count',
-                                                               'total_spent', 'avg_order_value', 'transaction_count', 'items_sold', 'taxable_amount',
-                                                               'total_tax_collected', 'today_orders', 'today_sales', 'items_sold', 'stock_value',
-                                                               'times_sold'])) {
-                                                $totals[$field] = 0;
-                                            }
-                                        }
-                                        ?>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php 
-                                    $row_count = 0;
-                                    foreach ($report_data as $row): 
-                                        $row_count++;
-                                        // Limit rows for pagination (client-side for now)
-                                        if ($row_count > 100) break;
-                                        
-                                        echo '<tr>';
-                                        foreach ($headers as $label => $field) {
-                                            $value = $row[$field] ?? '';
-                                            
-                                            // Format values based on type
-                                            if (strpos($field, '_date') !== false && !empty($value)) {
-                                                $value = date('M d, Y', strtotime($value));
-                                            } elseif (strpos($field, 'margin') !== false || strpos($field, 'rate') !== false) {
-                                                if (is_numeric($value)) {
-                                                    $value = number_format($value, 2) . '%';
-                                                }
-                                            } elseif (is_numeric($value) && $value != 0) {
-                                                // Track totals for numeric columns
-                                                if (isset($totals[$field])) {
-                                                    $totals[$field] += $value;
-                                                }
-                                                
-                                                // Format numeric values
-                                                if (strpos($field, 'price') !== false || 
-                                                    strpos($field, 'amount') !== false || 
-                                                    strpos($field, 'total') !== false ||
-                                                    strpos($field, 'cost') !== false ||
-                                                    strpos($field, 'profit') !== false ||
-                                                    strpos($field, 'spent') !== false ||
-                                                    strpos($field, 'value') !== false) {
-                                                    $value = 'UGX ' . number_format($value, 0);
-                                                } elseif (is_float($value + 0)) {
-                                                    $value = number_format($value, 2);
-                                                }
-                                            }
-                                            
-                                            echo "<td>$value</td>";
-                                        }
-                                        echo '</tr>';
-                                    endforeach; 
-                                    ?>
-                                </tbody>
-                                <?php if (!empty($totals)): ?>
-                                <tfoot class="table-light">
-                                    <tr>
-                                        <?php 
-                                        foreach ($headers as $label => $field) {
-                                            $value = '';
-                                            if (isset($totals[$field])) {
-                                                if (strpos($field, 'margin') !== false || strpos($field, 'rate') !== false) {
-                                                    $value = number_format($totals[$field] / $row_count, 2) . '%';
-                                                } elseif (strpos($field, 'price') !== false || 
-                                                         strpos($field, 'amount') !== false || 
-                                                         strpos($field, 'total') !== false ||
-                                                         strpos($field, 'cost') !== false ||
-                                                         strpos($field, 'profit') !== false ||
-                                                         strpos($field, 'spent') !== false ||
-                                                         strpos($field, 'value') !== false) {
-                                                    $value = 'UGX ' . number_format($totals[$field], 0);
-                                                } elseif (is_numeric($totals[$field])) {
-                                                    $value = number_format($totals[$field]);
-                                                }
-                                                echo "<th>$value</th>";
-                                            } else {
-                                                echo '<th>' . ($label === array_key_first($headers) ? 'Total' : '') . '</th>';
-                                            }
-                                        }
-                                        ?>
-                                    </tr>
-                                </tfoot>
-                                <?php endif; ?>
-                            </table>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <div class="text-muted">
-                                Showing 1 to <?php echo min($row_count, 100); ?> of <?php echo count($report_data); ?> entries
-                                <?php if (count($report_data) > 100): ?>
-                                <span class="text-warning"> (showing first 100 records)</span>
+                    </div>
+                <?php elseif ($filters['report_type'] === 'inventory_movements'): ?>
+                    <!-- Recent Stock Movements -->
+                    <div class="col-lg-12 mb-4">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold">Recent Stock Movements</h6>
+                                <a href="stock_movements.php" class="btn btn-sm btn-link">View All</a>
+                            </div>
+                            <div class="card-body p-0">
+                                <?php if (!empty($report_data['recent_movements'])): ?>
+                                    <table class="table table-hover mb-0" id="movementsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Product</th>
+                                                <th>Type</th>
+                                                <th>Quantity</th>
+                                                <th>User</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($report_data['recent_movements'] as $movement):
+                                                $movement_class = [
+                                                    'in' => 'success',
+                                                    'out' => 'danger',
+                                                    'adjustment' => 'warning'
+                                                ][$movement['type']] ?? 'secondary';
+                                                $movement_icon = [
+                                                    'in' => 'plus-circle',
+                                                    'out' => 'minus-circle',
+                                                    'adjustment' => 'sliders-h'
+                                                ][$movement['type']] ?? 'exchange-alt';
+                                                $movement_date = new DateTime($movement['created_at']);
+                                            ?>
+                                                <tr>
+                                                    <td><?php echo $movement_date->format('M d, H:i'); ?></td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="me-2">
+                                                                <i class="fas fa-<?php echo $movement_icon; ?> text-<?php echo $movement_class; ?>"></i>
+                                                            </span>
+                                                            <div>
+                                                                <div class="fw-bold"><?php echo htmlspecialchars($movement['product_name']); ?></div>
+                                                                <small class="text-muted"><?php echo htmlspecialchars($movement['product_code']); ?></small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-<?php echo $movement_class; ?>">
+                                                            <?php echo ucfirst($movement['type']); ?>
+                                                        </span>
+                                                    </td>
+                                                    <td><?php echo number_format($movement['quantity']); ?></td>
+                                                    <td><?php echo htmlspecialchars($movement['user_name'] ?? 'System'); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                <?php else: ?>
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                                        <p class="mb-0">No stock movements found</p>
+                                    </div>
                                 <?php endif; ?>
                             </div>
-                            <?php if (count($report_data) > 10): ?>
-                            <nav>
-                                <ul class="pagination mb-0">
-                                    <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
-                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">4</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">5</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                                </ul>
-                            </nav>
-                            <?php endif; ?>
                         </div>
-                    <?php endif; ?>
+                    </div>
+                <?php elseif ($filters['report_type'] === 'customer_activity'): ?>
+                    <!-- Top Customers -->
+                    <div class="col-lg-12 mb-4">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold">Top Customers</h6>
+                                <span class="badge bg-primary"><?php echo count($report_data['top_customers']); ?> customers</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <?php if (!empty($report_data['top_customers'])): ?>
+                                    <table class="table table-hover mb-0" id="customersTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Customer</th>
+                                                <th>Purchases</th>
+                                                <th>Total Spent</th>
+                                                <th>Last Purchase</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($report_data['top_customers'] as $customer):
+                                                $last_purchase_date = new DateTime($customer['last_purchase']);
+                                            ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($customer['customer_name']); ?></td>
+                                                <td><?php echo number_format($customer['purchase_count']); ?></td>
+                                                <td><?php echo 'UGX ' . number_format($customer['total_spent'], 2); ?></td>
+                                                <td><?php echo $last_purchase_date->format('M d, Y'); ?></td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                <?php else: ?>
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                        <p class="mb-0">No customer activity found</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="card-footer bg-white">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailedReportModal" onclick="loadDetailedReport('customer_report')">
+                                    View Detailed Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($filters['report_type'] === 'financial_summary'): ?>
+                    <!-- Payment Methods Chart -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold">Payment Methods Distribution</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="paymentMethodsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Financial Metrics -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold">Financial Metrics</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table">
+                                    <tr>
+                                        <th>Total Revenue</th>
+                                        <td><?php echo 'UGX ' . number_format($report_data['summary']['total_revenue'], 2); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Total Tax</th>
+                                        <td><?php echo 'UGX ' . number_format($report_data['summary']['total_tax'], 2); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Total Discounts</th>
+                                        <td><?php echo 'UGX ' . number_format($report_data['summary']['total_discount'], 2); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Card Payments</th>
+                                        <td><?php echo 'UGX ' . number_format($report_data['summary']['card_payments'], 2); ?></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Detailed Report Modal -->
+            <div class="modal fade" id="detailedReportModal" tabindex="-1" aria-labelledby="detailedReportModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="detailedReportModalLabel">Detailed Report</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" id="detailedReportContent">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-2x text-muted fa-spin"></i>
+                                <p>Loading report details...</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Overlay -->
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
-    </div>
-    
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    
+
     <script>
+        // Toggle sidebar
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+
+        // Initialize DataTables
         $(document).ready(function() {
-            // Initialize Select2
-            $('select').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: 'Select an option',
-                allowClear: true
-            });
-            
-            // Initialize date range picker
-            $('#date_range').daterangepicker({
-                startDate: moment().subtract(29, 'days'),
-                endDate: moment(),
-                ranges: {
-                    'Today': [moment(), moment()],
-                    'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-                    'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-                    'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-                    'This Month': [moment().startOf('month'), moment().endOf('month')],
-                    'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-                },
-                alwaysShowCalendars: true,
-                autoUpdateInput: true,
-                locale: {
-                    format: 'YYYY-MM-DD',
-                    cancelLabel: 'Clear'
-                }
-            });
-            
-            // Update hidden date fields
-            $('#date_range').on('apply.daterangepicker', function(ev, picker) {
-                $('#start_date').val(picker.startDate.format('YYYY-MM-DD'));
-                $('#end_date').val(picker.endDate.format('YYYY-MM-DD'));
-            });
-            
-            // Toggle filters collapse
-            $('#toggleFilters').click(function() {
-                const icon = $(this).find('i');
-                const text = $(this).find('.btn-text');
-                
-                if ($('#filtersBody').is(':visible')) {
-                    $('#filtersBody').slideUp();
-                    icon.removeClass('bi-chevron-up').addClass('bi-chevron-down');
-                    $(this).html('<i class="bi bi-chevron-down me-1"></i>Expand');
-                } else {
-                    $('#filtersBody').slideDown();
-                    icon.removeClass('bi-chevron-down').addClass('bi-chevron-up');
-                    $(this).html('<i class="bi bi-chevron-up me-1"></i>Collapse');
-                }
-            });
-            
-            // Report card selection
-            $('.report-card').click(function() {
-                $('.report-card').removeClass('active');
-                $(this).addClass('active');
-            });
-            
-            // Reset filters
-            $('#resetFilters').click(function() {
-                $('#reportForm')[0].reset();
-                $('select').val(null).trigger('change');
-                $('#date_range').data('daterangepicker').setStartDate(moment().subtract(29, 'days'));
-                $('#date_range').data('daterangepicker').setEndDate(moment());
-            });
-            
-            // Generate report
-            $('#generateReport').click(function() {
-                $('#loadingOverlay').addClass('show');
-                
-                // Simulate API call delay
-                setTimeout(function() {
-                    $('#loadingOverlay').removeClass('show');
-                }, 1500);
-            });
-            
-            // Toggle sidebar on mobile
-            $('.menu-toggle').click(function() {
-                $('.sidebar').toggleClass('active');
+            $('#movementsSummary, #customersummary').DataTable({
+                "order": [[0, "desc"]],
+                "pageLength": 10,
+                "responsive": true,
+                "dom: 'Bfrtip',
+                buttons: [
+                    'copy', 'csv', 'excel', 'print'
+                ]
             });
         });
+
+        // Load detailed report via AJAX
+        function loadDetailedReport(reportType) {
+            $('#detailedReportContent').html('<div class="text-center"><i class="fas fa-spinner fa-2x text-muted fa-spin"></i><p>Loading report details...</p></div>');
+            $.ajax({
+                url: 'generate_detailed_report.php',
+                type: 'POST',
+                data: {
+                    report_type: reportType,
+                    date_start: '<?php echo $filters['date_start']; ?>',
+                    date_end: '<?php echo $filters['date_end']; ?>',
+                    _token: '<?php echo $_SESSION['csrf_token']; ?>'
+                },
+                success: function(response) {
+                    $('#detailedReportContent').html(response);
+                },
+                error: function() {
+                    $('#detailedReportContent').html('<div class="alert alert-danger">Failed to load report details.</div>');
+                }
+            });
+        }
+
+        // Sales Trend Chart
+        <?php if ($filters['report_type'] === 'sales_summary'): ?>
+            const salesTrendCtx = document.getElementById('salesTrendChart').getContext('2d');
+            new Chart(salesTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'], // Replace with dynamic data
+                    datasets: [{
+                        label: 'Revenue (UGX)',
+                        data: [1000000, 1200000, 800000, 1500000, 1100000], // Replace with dynamic data
+                        borderColor: 'rgba(67, 97, 238, 1)',
+                        backgroundColor: 'rgba(67, 97, 238, 0.2)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Revenue (UGX)'
+                            }
+                        }
+                    }
+                }
+            });
+        <?php endif; ?>
+
+        // Payment Methods Chart
+        <?php if ($filters['report_type'] === 'financial_summary' && !empty($report_data['summary'])): ?>
+            const paymentMethodsCtx = document.getElementById('paymentMethodsChart').getContext('2d');
+            new Chart(paymentMethodsCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Cash', 'Card', 'Mobile Money'],
+                    datasets: [{
+                        data: [
+                            <?php echo $report_data['summary']['cash_payments']; ?>,
+                            <?php echo $report_data['summary']['card_payments']; ?>,
+                            <?php echo $report_data['summary']['mobile_payments']; ?>
+                        ],
+                        backgroundColor: [
+                            'rgba(67, 97, 238, 0.8)',
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(255, 193, 7, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        <?php endif; ?>
+
+        // Show loading overlay on form submission
+        $('form').on('submit', function() {
+            $('#loadingOverlay').show();
+        });
+
+        // Auto-hide alerts
+        $('.alert-dismissible').delay(5000).fadeOut('slow', function() {
+            $(this).remove();
+        });
     </script>
+
+    <!-- Logout Link -->
+    <div class="text-center mt-4">
+        <a href="../logout.php" class="btn btn-outline-danger">
+            <i class="fas fa-sign-out-alt me-2"></i> Logout
+        </a>
+    </div>
 </body>
 </html>
-
-<?php
-// Close the database connection after all operations are complete
-if (isset($db)) {
-    $db = null;
-}
-?>

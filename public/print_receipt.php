@@ -28,7 +28,7 @@ try {
                           cs.name as customer_name, 
                           cs.phone as customer_phone, 
                           cs.email as customer_email, 
-                          u.full_name as user_name 
+                          u.name as user_name 
                           FROM sales s 
                           LEFT JOIN customers cs ON s.customer_id = cs.id 
                           LEFT JOIN users u ON s.user_id = u.id 

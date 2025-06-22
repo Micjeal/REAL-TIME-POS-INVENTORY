@@ -1,6 +1,14 @@
 <?php
-require_once '../config.php';
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Set JSON content type
 header('Content-Type: application/json');
+
+// Include database configuration
+require_once dirname(__DIR__) . '/config.php';
 
 // Check if search query is provided
 if (!isset($_GET['q']) || empty(trim($_GET['q']))) {
@@ -9,24 +17,35 @@ if (!isset($_GET['q']) || empty(trim($_GET['q']))) {
 }
 
 try {
+    // Get database connection
+    $pdo = get_db_connection();
+    
+    if (!$pdo) {
+        throw new Exception('Failed to connect to database');
+    }
+    
     $searchTerm = '%' . trim($_GET['q']) . '%';
     $limit = 10; // Limit number of results
     
-    $sql = "SELECT p.*, pc.name as category_name 
+    $sql = "SELECT p.*, '' as category_name 
             FROM products p 
-            LEFT JOIN product_categories pc ON p.category_id = pc.id 
-            WHERE p.name LIKE :search 
-               OR p.code LIKE :search 
-               OR p.barcode LIKE :search 
+            WHERE p.name LIKE ? 
+               OR p.code LIKE ? 
+               OR p.barcode LIKE ? 
             ORDER BY p.name 
-            LIMIT :limit";
+            LIMIT ?";
     
     $stmt = $pdo->prepare($sql);
-    $stmt->bindValue(':search', $searchTerm, PDO::PARAM_STR);
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(1, $searchTerm, PDO::PARAM_STR);
+    $stmt->bindValue(2, $searchTerm, PDO::PARAM_STR);
+    $stmt->bindValue(3, $searchTerm, PDO::PARAM_STR);
+    $stmt->bindValue(4, $limit, PDO::PARAM_INT);
     $stmt->execute();
     
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Log successful search (for debugging)
+    error_log('Search successful for: ' . $_GET['q'] . ' - Found ' . count($results) . ' results');
     
     echo json_encode([
         'success' => true,
@@ -34,10 +53,26 @@ try {
     ]);
     
 } catch (PDOException $e) {
-    error_log('Search error: ' . $e->getMessage());
+    // Log the full error for debugging
+    error_log('Database error in search_products.php: ' . $e->getMessage());
+    error_log('Stack trace: ' . $e->getTraceAsString());
+    
+    http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'An error occurred while searching'
+        'message' => 'Database error occurred',
+        'error' => $e->getMessage()
+    ]);
+} catch (Exception $e) {
+    // Log the full error for debugging
+    error_log('Error in search_products.php: ' . $e->getMessage());
+    error_log('Stack trace: ' . $e->getTraceAsString());
+    
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'An error occurred while searching',
+        'error' => $e->getMessage()
     ]);
 }
 ?>

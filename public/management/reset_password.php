@@ -1,12 +1,18 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../includes/auth.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Check if user is admin
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: /index.php?error=unauthorized');
+// Include database configuration
+require_once __DIR__ . '/../config.php';
+
+// Check if user is logged in and is admin
+if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+    header('Location: /login.php');
     exit();
 }
+
+$db = get_db_connection();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
     $userId = $_POST['user_id'];
@@ -14,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
     $hashedPassword = password_hash($defaultPassword, PASSWORD_DEFAULT);
     
     try {
-        $stmt = $pdo->prepare("UPDATE users SET password = ?, force_password_change = 1 WHERE id = ?");
+        $stmt = $db->prepare("UPDATE users SET password = ?, force_password_change = 1 WHERE id = ?");
         $stmt->execute([$hashedPassword, $userId]);
         
         // Log this action
