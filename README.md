@@ -1,4 +1,4 @@
-# MTECH UGANDA - Point of Sale (POS) & Inventory Management System
+I'm# MTECH UGANDA - Point of Sale (POS) & Inventory Management System
 
 ## Overview
 MTECH UGANDA is a comprehensive Point of Sale (POS) and Inventory Management System designed to streamline business operations for retail and wholesale businesses. The system provides robust features for sales management, inventory control, customer management, and business analytics.
@@ -103,8 +103,8 @@ MTECH UGANDA is a comprehensive Point of Sale (POS) and Inventory Management Sys
 ## Support
 
 For technical support or feature requests, please contact:
-- Email: support@mtechuganda.com
-- Phone: +256 XXX XXX XXX
+- Email: mugishamicheal24@gmail.com
+- Phone: +256 768 432 509
 
 ## License
 
