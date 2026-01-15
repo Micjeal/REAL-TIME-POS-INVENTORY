@@ -1,3 +1,6 @@
+![Alt](https://repobeats.axiom.co/api/embed/a6c33ee5c127b7ea7e93387a337dfab751c4595f.svg "Repobeats analytics image")
+
+
 I'm# MTECH UGANDA - Point of Sale (POS) & Inventory Management System
 
 ## Overview
