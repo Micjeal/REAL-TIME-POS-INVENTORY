@@ -1,7 +1,7 @@
 [build]
   publish = "public"
 
-# Conflict resolved: static fallback for all routes on Netlify.
+# Static fallback for Netlify preview/production routes.
 [[redirects]]
   from = "/*"
   to = "/index.html"
