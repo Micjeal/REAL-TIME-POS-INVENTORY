@@ -1,0 +1,9 @@
+[build]
+  publish = "public"
+
+# Fallback for direct navigation/bookmarked routes.
+# Existing files in /public are still served as-is.
+[[redirects]]
+  from = "/*"
+  to = "/index.php"
+  status = 200
