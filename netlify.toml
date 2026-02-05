@@ -1,7 +1,8 @@
 [build]
   publish = "public"
 
-# Static fallback for Netlify preview/production routes.
+# Fallback for direct navigation/bookmarked routes.
+# Existing files in /public are still served as-is.
 [[redirects]]
   from = "/*"
   to = "/index.html"
