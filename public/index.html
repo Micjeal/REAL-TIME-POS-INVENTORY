@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MTECH UGANDA</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Arial, sans-serif;
+        background: #1e2130;
+        color: #f0f0f0;
+        text-align: center;
+        padding: 24px;
+      }
+      .card {
+        max-width: 680px;
+        background: #2a2e43;
+        border-radius: 10px;
+        padding: 24px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      }
+      a {
+        color: #7db2ff;
+      }
+      code {
+        background: #111522;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Site deployment needs a PHP runtime</h1>
+      <p>
+        This project is a PHP application. Netlify static hosting does not execute
+        <code>.php</code> files, which is why you were seeing broken routes / 404 behavior.
+      </p>
+      <p>
+        Deploy this app on a PHP host (for example: cPanel, Render PHP, Railway, Fly.io, or a VPS)
+        so pages like <code>startup.php</code> and <code>login.php</code> can run.
+      </p>
+    </main>
+  </body>
+</html>
