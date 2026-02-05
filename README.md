@@ -1,7 +1,7 @@
 ![Alt](https://repobeats.axiom.co/api/embed/a6c33ee5c127b7ea7e93387a337dfab751c4595f.svg "Repobeats analytics image")
 
 
-I'm# MTECH UGANDA - Point of Sale (POS) & Inventory Management System
+# MTECH UGANDA - Point of Sale (POS) & Inventory Management System
 
 ## Overview
 MTECH UGANDA is a comprehensive Point of Sale (POS) and Inventory Management System designed to streamline business operations for retail and wholesale businesses. The system provides robust features for sales management, inventory control, customer management, and business analytics.
@@ -176,4 +176,24 @@ To connect a database for cloud deployment:
 3. The app now reads these environment variables first, then falls back to local defaults.
 
 If you still publish static assets on Netlify, keep `netlify.toml` with `publish = "public"` and a static fallback (`/index.html`).
+
+## Production Completion Checklist
+
+Use this checklist to finish deployment end-to-end:
+
+1. **Create database**
+   - Create/provision a MySQL database (example name: `mtech_uganda`).
+2. **Set environment variables in your PHP runtime host**
+   - `DB_HOST`
+   - `DB_NAME`
+   - `DB_USER`
+   - `DB_PASSWORD`
+3. **Run schema setup**
+   - Import `database_setup.sql`, or run the setup script:
+     - `php database_setup.php`
+4. **Verify database connection**
+   - Run: `php -S 0.0.0.0:8080 -t public` then open `/test_db.php`.
+5. **Netlify usage**
+   - Keep Netlify for static pages only (`public/index.html` fallback).
+   - Host PHP on a PHP-capable platform for full app functionality.
 
