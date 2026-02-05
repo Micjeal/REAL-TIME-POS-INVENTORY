@@ -160,3 +160,20 @@ Current Version: 1.1.0 (Development)
 
 ## Last Updated
 June 9, 2025
+
+## Netlify + Database Setup (Important)
+
+This project is PHP-based. Netlify core hosting is static, so PHP pages are not executed there.
+
+To connect a database for cloud deployment:
+
+1. Provision a MySQL-compatible database (for example: PlanetScale, Railway MySQL, Render MySQL, Neon + MySQL-compatible endpoint, or a VPS MySQL).
+2. In your runtime host (where PHP runs), set environment variables:
+   - `DB_HOST`
+   - `DB_NAME`
+   - `DB_USER`
+   - `DB_PASSWORD`
+3. The app now reads these environment variables first, then falls back to local defaults.
+
+If you still publish static assets on Netlify, keep `netlify.toml` with `publish = "public"` and a static fallback (`/index.html`).
+

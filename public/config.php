@@ -7,10 +7,11 @@
  */
 
 // Database Configuration
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'mtech-uganda');
-define('DB_USER', 'root');
-define('DB_PASSWORD', '');
+// Supports local defaults plus environment overrides (useful for cloud deployments).
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'mtech-uganda');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASSWORD', getenv('DB_PASSWORD') ?: '');
 
 // Character Set and Collation
 define('DB_CHARSET', 'utf8mb4');
