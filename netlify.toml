@@ -1,9 +1,2 @@
 [build]
   publish = "public"
-
-# Netlify is a static host by default and does not execute PHP files.
-# Always serve a static entry page instead of rewriting to index.php.
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
